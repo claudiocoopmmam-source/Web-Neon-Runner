@@ -54,13 +54,16 @@ const player = {
     isGrounded: false,
     isAttacking: false,
     attackTimer: 0,
-    attackDuration: 15, 
+    attackDuration: 15, // Duração total do ataque em frames do jogo
     attackBox: { x: 0, y: 0, width: 50, height: 48 },
     invulnerableTimer: 0,
     color: '#00ffcc',
+    // Propriedades de animação de corrida
     currentFrame: 0,
-    animationSpeed: 6, 
+    animationSpeed: 6, // Muda de frame a cada 6 updates
+    // Propriedades de animação de ataque
     currentAttackFrame: 0,
+    // Cooldown do ataque (30 frames = meio segundo a 60fps)
     attackCooldownTimer: 0 
 };
 
@@ -89,6 +92,7 @@ function init() {
     player.isAttacking = false;
     player.currentFrame = 0;
     player.currentAttackFrame = 0;
+    player.attackCooldownTimer = 0;
     updateUI();
 }
 
@@ -121,13 +125,12 @@ canvas.addEventListener('mousedown', (e) => {
     if (e.button === 0) triggerAttack();
 });
 
-ffunction triggerAttack() {
+function triggerAttack() {
     if (!player.isAttacking && player.attackCooldownTimer === 0 && !isGameOver && !isPaused && !isFirstStart) {
         player.isAttacking = true;
         player.attackTimer = player.attackDuration;
         player.currentAttackFrame = 0;
-        // Meio segundo a 60 FPS = 30 frames de cooldown
-        player.attackCooldownTimer = 30; 
+        player.attackCooldownTimer = 30; // Ativa cooldown de meio segundo
     }
 }
 
@@ -173,11 +176,9 @@ function updatePlayer() {
     player.y += player.vy;
     player.isGrounded = false;
 
-    // Controle do timer e dos frames da animação de ataque
     if (player.isAttacking) {
         player.attackTimer--;
         
-        // Divide o tempo total do ataque igualmente entre os 3 frames disponíveis
         const progress = player.attackDuration - player.attackTimer;
         const frameInterval = player.attackDuration / numAttackFrames;
         player.currentAttackFrame = Math.min(Math.floor(progress / frameInterval), numAttackFrames - 1);
@@ -206,7 +207,6 @@ function updatePlayer() {
         }
     });
 
-    // Lógica de Animação de Corrida (Apenas se não estiver atacando)
     if (player.isGrounded) {
         if (globalTimer % player.animationSpeed === 0) {
             player.currentFrame = (player.currentFrame + 1) % numRunFrames;
@@ -254,6 +254,7 @@ function spawnEntity(spawnX) {
             vx: -(gameSpeed + 2), vy: 0, color: '#ff0055'
         });
     } else if (type === 'flyer_enemy') {
+        // ROXO: Inimigo voador que agora mira o tiro no jogador
         entities.push({
             type: 'flyer', x: spawnX, y: Math.random() * (200 - 80) + 80, width: 28, height: 28,
             vx: -gameSpeed, vy: 0, hasShot: false, color: '#d600ff'
@@ -288,10 +289,29 @@ function updateEntities() {
         ent.x += ent.vx;
         ent.y += ent.vy;
 
+        // AJUSTADO: Disparo do inimigo roxo (flyer) agora vai na direção do player
         if (ent.type === 'flyer' && !ent.hasShot && ent.x < 750) {
+            const projX = ent.x;
+            const projY = ent.y + ent.height / 2;
+            
+            // Calcula a distância horizontal e vertical até o centro do player
+            const dx = (player.x + player.width / 2) - projX;
+            const dy = (player.y + player.height / 2) - projY;
+            const dist = Math.sqrt(dx * dx + dy * dy);
+            
+            // Define a velocidade base do projétil
+            const projSpeed = gameSpeed + 5;
+
             projectiles.push({
-                x: ent.x, y: ent.y + ent.height / 2, width: 14, height: 8,
-                vx: -(gameSpeed + 6), vy: 0, isReflected: false, color: '#ffea00'
+                x: projX,
+                y: projY,
+                width: 14,
+                height: 8,
+                // Normaliza o vetor e multiplica pela velocidade para inclinar o tiro
+                vx: (dx / dist) * projSpeed,
+                vy: (dy / dist) * projSpeed,
+                isReflected: false,
+                color: '#ffea00'
             });
             ent.hasShot = true;
         }
@@ -375,6 +395,7 @@ function checkDrop(x, y) {
     }
 }
 
+// ... (Restante do script idêntico: updateDrops, takeDamage, draw, e as telas de fim/pausa) ...
 function updateDrops() {
     drops.forEach((drop, index) => {
         drop.x -= gameSpeed;
@@ -452,10 +473,8 @@ function draw() {
                 player.height
             );
         } else if (runAssetsLoaded === numRunFrames) {
-            // Desenha animação de corrida padrão
             ctx.drawImage(runFrames[player.currentFrame], player.x, player.y, player.width, player.height);
         } else {
-            // Fallback
             ctx.fillStyle = player.isAttacking ? '#ffff00' : player.color;
             ctx.fillRect(player.x, player.y, player.width, player.height);
         }
@@ -495,7 +514,6 @@ function drawPause() {
     ctx.fillText('PAUSED', canvas.width / 2, canvas.height / 2);
 }
 
-// Inicialização segura
 document.addEventListener('DOMContentLoaded', () => {
     init();
     loop();
