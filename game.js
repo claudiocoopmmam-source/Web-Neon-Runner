@@ -594,27 +594,22 @@ function draw() {
 }
 
 function drawFirstStart() {
-    ctx.fillStyle = 'rgba(13, 14, 21, 0.85)';
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
-    ctx.fillStyle = '#00ffcc';
-    ctx.font = '24px Courier New';
-    ctx.textAlign = 'center';
-    ctx.fillText('RUNNER', canvas.width / 2, canvas.height / 2 - 30);
-    ctx.fillStyle = '#fff';
-    ctx.font = '16px Courier New';
-    ctx.fillText('Pressione qualquer tecla para iniciar', canvas.width / 2, canvas.height / 2 + 20);
+    //ctx.fillStyle = 'rgba(13, 14, 21, 0.85)';
+    //ctx.fillRect(0, 0, canvas.width, canvas.height);
+    //ctx.fillStyle = '#00ffcc';
+    //ctx.font = '24px Courier New';
+    //ctx.textAlign = 'center';
+    //ctx.fillText('RUNNER', canvas.width / 2, canvas.height / 2 - 30);
+    //ctx.fillStyle = '#fff';
+    //ctx.font = '16px Courier New';
+    //ctx.fillText('Pressione qualquer tecla para iniciar', canvas.width / 2, canvas.height / 2 + 20);
 }
 
 function drawGameOver() {
-    ctx.fillStyle = 'rgba(13, 14, 21, 0.9)';
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
-    ctx.fillStyle = '#ff0055';
-    ctx.font = '30px Courier New';
-    ctx.textAlign = 'center';
-    ctx.fillText('GAME OVER', canvas.width / 2, canvas.height / 2 - 20);
-    ctx.fillStyle = '#fff';
-    ctx.font = '16px Courier New';
-    ctx.fillText('Pressione ENTER para Recomeçar', canvas.width / 2, canvas.height / 2 + 20);
+    const gameOverScreen = document.getElementById('game-over-screen');
+    if (gameOverScreen && gameOverScreen.style.display === 'none') {
+        gameOverScreen.style.display = 'flex';
+    }
 }
 
 function drawPause() {

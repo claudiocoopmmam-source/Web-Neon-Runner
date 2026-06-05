@@ -10,15 +10,89 @@ body {
     font-family: 'Courier New', Courier, monospace;
     display: flex;
     flex-direction: column;
-    align-items: center;
-    justify-content: center;
+    align-items: center; 
+    justify-content: center; 
     height: 100vh;
     overflow: hidden;
     user-select: none;
 }
 
-#game-ui {
+/* Container principal travado em 800px e centralizado */
+#game-wrapper {
+    position: relative;
     width: 800px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+/* Estrutura do Menu Principal */
+#main-menu {
+    width: 800px;
+    height: 445px; 
+    background-image: url('assets/main_menu_bg.png'); 
+    background-size: contain;
+    background-repeat: no-repeat;
+    background-position: center;
+    border-radius: 4px;
+    box-shadow: 0 0 30px rgba(0, 255, 204, 0.15);
+    display: flex;
+    align-items: center;
+    justify-content: flex-end; 
+    padding-right: 75px; 
+}
+
+/* Caixa dos botões empilhados */
+#menu-buttons-container {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+    width: 220px;
+    margin-top: 140px; /* AJUSTADO: Abaixa os botões para não cobrir o título */
+}
+
+/* Estilização Neon dos Botões */
+.menu-btn {
+    background: rgba(13, 14, 21, 0.85);
+    color: #00ffcc;
+    border: 2px solid #00ffcc;
+    padding: 12px 20px;
+    font-family: 'Courier New', Courier, monospace;
+    font-size: 1.1rem;
+    font-weight: bold;
+    letter-spacing: 2px;
+    cursor: pointer;
+    border-radius: 4px;
+    box-shadow: 0 0 10px rgba(0, 255, 204, 0.2);
+    transition: all 0.2s ease;
+}
+
+.menu-btn:hover {
+    background: #00ffcc;
+    color: #0d0e15;
+    box-shadow: 0 0 20px #00ffcc;
+    transform: scale(1.05);
+}
+
+#btn-highscore {
+    color: #ff0055;
+    border-color: #ff0055;
+    box-shadow: 0 0 10px rgba(255, 0, 85, 0.2);
+}
+
+#btn-highscore:hover {
+    background: #ff0055;
+    color: #0d0e15;
+    box-shadow: 0 0 20px #ff0055;
+}
+
+/* Tela do Jogo e Elementos de Texto alinhados com o Canvas */
+#game-screen {
+    width: 800px;
+}
+
+#game-ui {
+    width: 100%;
     display: flex;
     justify-content: space-between;
     align-items: center;
@@ -43,10 +117,51 @@ canvas {
     cursor: crosshair;
 }
 
+/* IMPLEMENTADO: Estilo da Tela de Game Over interativa sobreposta ao Canvas */
+#game-over-screen {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 800px;
+    height: 400px;
+    background: rgba(13, 14, 21, 0.9);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 25px;
+    border-radius: 4px;
+}
+
+#game-over-screen h2 {
+    color: #ff0055;
+    font-size: 3rem;
+    letter-spacing: 4px;
+    text-shadow: 0 0 15px rgba(255, 0, 85, 0.6);
+}
+
+#game-over-buttons {
+    display: flex;
+    gap: 20px;
+}
+
+#btn-to-menu {
+    color: #ffaa00;
+    border-color: #ffaa00;
+    box-shadow: 0 0 10px rgba(255, 170, 0, 0.2);
+}
+
+#btn-to-menu:hover {
+    background: #ffaa00;
+    color: #0d0e15;
+    box-shadow: 0 0 20px #ffaa00;
+}
+
 #controls-tip {
     margin-top: 15px;
     color: #626a8a;
     font-size: 0.9rem;
     text-align: center;
     line-height: 1.4;
+    width: 100%;
 }
