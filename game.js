@@ -9,10 +9,24 @@ let score = 0;
 let lives = 3;
 let isGameOver = false;
 let isPaused = false;
-let isFirstStart = true;
+let isFirstStart = true; // Controla o início congelado
 let globalTimer = 0;
 
 const keys = { jump: false };
+
+// --- CARREGAMENTO DE ASSETS (ANIMAÇÃO DE CORRIDA) ---
+const runFrames = [];
+const numFrames = 4;
+let assetsLoaded = 0;
+
+for (let i = 1; i <= numFrames; i++) {
+    const img = new Image();
+    img.src = `assets/player_run_${i}.png`;
+    img.onload = () => {
+        assetsLoaded++;
+    };
+    runFrames.push(img);
+}
 
 // Objeto do Jogador
 const player = {
@@ -28,7 +42,10 @@ const player = {
     attackTimer: 0,
     attackBox: { x: 0, y: 0, width: 50, height: 48 },
     invulnerableTimer: 0,
-    color: '#00ffcc'
+    color: '#00ffcc',
+    // Propriedades de animação
+    currentFrame: 0,
+    animationSpeed: 6 // Muda de frame a cada 6 updates
 };
 
 // Arrays de Entidades
@@ -54,11 +71,13 @@ function init() {
     player.vy = 0;
     player.invulnerableTimer = 0;
     player.isAttacking = false;
+    player.currentFrame = 0;
     updateUI();
 }
 
-// Inputs
+// Inputs (Teclado)
 window.addEventListener('keydown', (e) => {
+    // Se o jogo estiver na tela inicial, qualquer tecla inicia
     if (isFirstStart) {
         isFirstStart = false;
         return;
@@ -77,6 +96,7 @@ window.addEventListener('keyup', (e) => {
     if (['Space', 'KeyW', 'ArrowUp'].includes(e.code)) keys.jump = false;
 });
 
+// Input (Clique do Mouse para atacar)
 canvas.addEventListener('mousedown', (e) => {
     if (isFirstStart) {
         isFirstStart = false;
@@ -157,6 +177,16 @@ function updatePlayer() {
         }
     });
 
+    // Lógica de Animação de Corrida / Pulo
+    if (player.isGrounded) {
+        if (globalTimer % player.animationSpeed === 0) {
+            player.currentFrame = (player.currentFrame + 1) % numFrames;
+        }
+    } else {
+        // Trava no frame 2 (índice 1) enquanto estiver no ar
+        player.currentFrame = 1;
+    }
+
     if (keys.jump && player.isGrounded) {
         player.vy = player.jumpForce;
         player.isGrounded = false;
@@ -171,6 +201,8 @@ function updatePlatforms() {
 
     if (platforms.length < 5) {
         const lastPlat = platforms[platforms.length - 1];
+        
+        // Mínimo de 65px garante a necessidade de pular
         const minGap = 65, maxGap = 145; 
         const minWidth = 180, maxWidth = 450;
         
@@ -196,16 +228,19 @@ function spawnEntity(spawnX) {
             vx: -(gameSpeed + 2), vy: 0, color: '#ff0055'
         });
     } else if (type === 'flyer_enemy') {
+        // ROXO: Inimigo voador que atira projéteis retos
         entities.push({
             type: 'flyer', x: spawnX, y: Math.random() * (200 - 80) + 80, width: 28, height: 28,
             vx: -gameSpeed, vy: 0, hasShot: false, color: '#d600ff'
         });
     } else if (type === 'shooter_enemy') {
+        // AZUL: Caçador que voa rápido na direção do jogador de forma dinâmica
         entities.push({
             type: 'shooter', x: spawnX, y: Math.random() * (220 - 50) + 50, width: 32, height: 32,
             vx: -gameSpeed, vy: 0, isTracking: true, color: '#00bfff'
         });
     } else {
+        // PAREDE: Ocupa toda a altura útil até o teto
         entities.push({
             type: 'wall', x: spawnX, y: 0, width: 30, height: 300,
             vx: -gameSpeed, vy: 0, color: '#ffaa00'
@@ -215,6 +250,7 @@ function spawnEntity(spawnX) {
 
 function updateEntities() {
     entities.forEach((ent, index) => {
+        // Movimentação do perseguidor azul (Cálculo em tempo real focado no player)
         if (ent.type === 'shooter' && ent.isTracking) {
             const dx = player.x - ent.x;
             const dy = player.y - ent.y;
@@ -230,6 +266,7 @@ function updateEntities() {
         ent.x += ent.vx;
         ent.y += ent.vy;
 
+        // Disparo do inimigo roxo (flyer)
         if (ent.type === 'flyer' && !ent.hasShot && ent.x < 750) {
             projectiles.push({
                 x: ent.x, y: ent.y + ent.height / 2, width: 14, height: 8,
@@ -238,8 +275,9 @@ function updateEntities() {
             ent.hasShot = true;
         }
 
+        // Ataque corpo a corpo destrói inimigo/parede
         if (player.isAttacking && checkCollision(player.attackBox, ent)) {
-            checkDrop(ent.x, ent.y);
+            checkDrop(ent.x, ent.y); // Roda a chance de dropar vida
             entities.splice(index, 1);
             score += 50;
             return;
@@ -265,14 +303,16 @@ function updateProjectiles() {
                 return;
             }
 
+            // Jogador rebate projétil com ataque melee
             if (player.isAttacking && checkCollision(player.attackBox, proj)) {
                 proj.isReflected = true;
-                proj.color = '#00ff66';
+                proj.color = '#00ff66'; // Torna-se verde amigável
                 score += 30;
 
                 let closestEnemy = null;
                 let minDist = Infinity;
 
+                // Encontra inimigo mais próximo para direcionar o ricochete
                 entities.forEach(ent => {
                     if (ent.type !== 'wall') {
                         const dist = Math.sqrt(Math.pow(ent.x - proj.x, 2) + Math.pow(ent.y - proj.y, 2));
@@ -296,6 +336,7 @@ function updateProjectiles() {
                 return;
             }
         } else {
+            // Projétil refletido colide com inimigos
             entities.forEach((ent, eIdx) => {
                 if (checkCollision(proj, ent) && ent.type !== 'wall') {
                     checkDrop(ent.x, ent.y);
@@ -312,6 +353,7 @@ function updateProjectiles() {
 }
 
 function checkDrop(x, y) {
+    // 10% de chance de dropar um coração
     if (Math.random() <= 0.10) {
         drops.push({ x: x, y: y + 10, width: 20, height: 20, color: '#ff0055' });
     }
@@ -352,7 +394,7 @@ function draw() {
         ctx.fillStyle = '#2c2e3e';
     });
 
-    // Desenha Drops
+    // Desenha Itens Dropados (Corações)
     drops.forEach(drop => {
         ctx.fillStyle = drop.color;
         ctx.font = '16px Courier New';
@@ -365,7 +407,7 @@ function draw() {
         ctx.fillRect(proj.x, proj.y, proj.width, proj.height);
     });
 
-    // Desenha Inimigos
+    // Desenha Inimigos e Obstáculos
     entities.forEach(ent => {
         ctx.fillStyle = ent.color;
         ctx.fillRect(ent.x, ent.y, ent.width, ent.height);
@@ -382,11 +424,19 @@ function draw() {
         }
     });
 
-    // Desenha Player
+    // Desenha Player (com frames de animação se carregados)
     if (player.invulnerableTimer % 4 < 2) {
-        ctx.fillStyle = player.isAttacking ? '#ffff00' : player.color;
-        ctx.fillRect(player.x, player.y, player.width, player.height);
+        if (player.isAttacking) {
+            ctx.fillStyle = '#ffff00'; // Feedback visual rápido de ataque no corpo
+            ctx.fillRect(player.x, player.y, player.width, player.height);
+        } else if (assetsLoaded === numFrames) {
+            ctx.drawImage(runFrames[player.currentFrame], player.x, player.y, player.width, player.height);
+        } else {
+            ctx.fillStyle = player.color;
+            ctx.fillRect(player.x, player.y, player.width, player.height);
+        }
 
+        // Área visual do hit do ataque Melee (Aura amarela na frente)
         if (player.isAttacking) {
             ctx.fillStyle = 'rgba(255, 255, 0, 0.4)';
             ctx.fillRect(player.attackBox.x, player.attackBox.y, player.attackBox.width, player.attackBox.height);
@@ -427,6 +477,7 @@ function drawPause() {
     ctx.fillText('PAUSED', canvas.width / 2, canvas.height / 2);
 }
 
+// Inicializa o jogo de forma limpa quando o DOM estiver pronto
 document.addEventListener('DOMContentLoaded', () => {
     init();
     loop();
