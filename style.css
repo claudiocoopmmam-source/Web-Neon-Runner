@@ -1,0 +1,52 @@
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    background: #0d0e15;
+    color: #fff;
+    font-family: 'Courier New', Courier, monospace;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 100vh;
+    overflow: hidden;
+    user-select: none;
+}
+
+#game-ui {
+    width: 800px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 10px;
+}
+
+#lives {
+    color: #ff0055;
+    font-size: 1.5rem;
+    letter-spacing: 2px;
+}
+
+#score {
+    color: #00ffcc;
+    font-size: 1.5rem;
+}
+
+canvas {
+    background: #181a26;
+    box-shadow: 0 0 30px rgba(0, 255, 204, 0.15);
+    border-radius: 4px;
+    cursor: crosshair;
+}
+
+#controls-tip {
+    margin-top: 15px;
+    color: #626a8a;
+    font-size: 0.9rem;
+    text-align: center;
+    line-height: 1.4;
+}
