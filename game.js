@@ -427,6 +427,7 @@ function drawPause() {
     ctx.fillText('PAUSED', canvas.width / 2, canvas.height / 2);
 }
 
-// Inicialização
-init();
-loop();
+document.addEventListener('DOMContentLoaded', () => {
+    init();
+    loop();
+});
