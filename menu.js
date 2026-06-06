@@ -12,7 +12,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // Lista com as dicas do jogo
     const tips = [
         "Dica: Sua estamina só recupera quando você está pisando no chão.",
-        "Dica: Ataque os projéteis amarelos no tempo certo para rebatê-los contra os inimigos.",
+        "Dica: Ataque os projéteis amarelos para rebatê-los contra os inimigos.",
         "Dica: Você fica invulnerável por alguns momentos após receber dano.",
         "Dica: Derrotar inimigos dá 10% de chance de dropar uma vida extra (❤️).",
         "Dica: O segundo pulo no ar tem apenas 70% da força do primeiro pulo.",
