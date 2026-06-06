@@ -613,12 +613,41 @@ function drawGameOver() {
 }
 
 function drawPause() {
-    ctx.fillStyle = 'rgba(13, 14, 21, 0.6)';
+    // Fundo escurecido translúcido
+    ctx.fillStyle = 'rgba(13, 14, 21, 0.75)';
     ctx.fillRect(0, 0, canvas.width, canvas.height);
+    
+    // Título de Pause
     ctx.fillStyle = '#00ffcc';
-    ctx.font = '30px Courier New';
+    ctx.font = 'bold 30px Courier New';
     ctx.textAlign = 'center';
-    ctx.fillText('PAUSED', canvas.width / 2, canvas.height / 2);
+    ctx.fillText('PAUSED', canvas.width / 2, canvas.height / 2 - 60);
+    
+    // Subtítulo / Instruções de Comando
+    ctx.fillStyle = '#fff';
+    ctx.font = '14px Courier New';
+    
+    ctx.fillText('C O M A N D O S', canvas.width / 2, canvas.height / 2 - 10);
+    
+    ctx.fillStyle = '#626a8a';
+    ctx.fillText('------------------------------------------------', canvas.width / 2, canvas.height / 2 + 5);
+    
+    ctx.fillStyle = '#00ffcc';
+    ctx.fillText('W / ESPAÇO / ↑ :', canvas.width / 2 - 100, canvas.height / 2 + 25);
+    ctx.fillStyle = '#fff';
+    ctx.textAlign = 'left';
+    ctx.fillText('Pulo / Pulo Duplo / Voar (Segurar)', canvas.width / 2 - 30, canvas.height / 2 + 25);
+    
+    ctx.textAlign = 'center';
+    ctx.fillStyle = '#00ffcc';
+    ctx.fillText('D / X / CLIQUE :', canvas.width / 2 - 100, canvas.height / 2 + 50);
+    ctx.fillStyle = '#fff';
+    ctx.textAlign = 'left';
+    ctx.fillText('Ataque Melee (Corta & Rebate Projéteis)', canvas.width / 2 - 30, canvas.height / 2 + 50);
+    
+    ctx.textAlign = 'center';
+    ctx.fillStyle = '#ffaa00';
+    ctx.fillText('Pressione [P] para despausar e continuar', canvas.width / 2, canvas.height / 2 + 95);
 }
 
 document.addEventListener('DOMContentLoaded', () => {
