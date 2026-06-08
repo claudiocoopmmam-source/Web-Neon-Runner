@@ -17,10 +17,10 @@ body {
     user-select: none;
 }
 
-/* Container principal travado em 800px e centralizado */
+/* Container principal atualizado */
 #game-wrapper {
     position: relative;
-    width: 800px;
+    width: 1024px;
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -28,8 +28,8 @@ body {
 
 /* Estrutura do Menu Principal */
 #main-menu {
-    width: 800px;
-    height: 445px; 
+    width: 1024px;
+    height: 576px; 
     background-image: url('assets/main_menu_bg.png'); 
     background-size: contain;
     background-repeat: no-repeat;
@@ -39,7 +39,7 @@ body {
     display: flex;
     align-items: center;
     justify-content: flex-end; 
-    padding-right: 75px; 
+    padding-right: 120px; 
 }
 
 /* Caixa dos botões empilhados */
@@ -88,7 +88,7 @@ body {
 
 /* Tela do Jogo e Elementos de Texto alinhados com o Canvas */
 #game-screen {
-    width: 800px;
+    width: 1024px;
 }
 
 #game-ui {
@@ -122,8 +122,8 @@ canvas {
     position: absolute;
     top: 0;
     left: 0;
-    width: 800px;
-    height: 400px;
+    width: 1024px;
+    height: 576px;
     background: rgba(13, 14, 21, 0.9);
     display: flex;
     flex-direction: column;

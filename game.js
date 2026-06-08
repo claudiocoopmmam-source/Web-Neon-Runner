@@ -1,112 +1,50 @@
+import './menu.js';
+import { 
+    player, resetPlayer, updatePlayerState, 
+    runFrames, runAssetsLoaded, numRunFrames, 
+    attackFrames, attackAssetsLoaded, numAttackFrames, 
+    jumpSprite, jumpAssetLoaded, 
+    flyFrames, flyAssetsLoaded, numFlyFrames,
+    runnerFrames, runnerAssetsLoaded, numRunnerFrames,
+    shooterLoadedSprite, shooterLoadedAssetLoaded,
+    shooterUnloadedSprite, shooterUnloadedAssetLoaded,
+    missileFrames, missileAssetsLoaded, numMissileFrames,
+    carrierFuelSprite, carrierFuelAssetLoaded,
+    carrierHealthSprite, carrierHealthAssetLoaded
+} from './player.js';
+import { checkCollision, updatePlatformsState, createNewPlatform, generateEnemy, spawnCarrierDrone } from './entities.js';
+import { updateUI, drawPause, drawFuelBar } from './ui.js';
+import { toggleMute, gameBGM, playAttackSFX, startRocketBootsSFX, stopRocketBootsSFX, playExplosionSFX, playCarrierPickupSFX } from './audio.js';
+
 const canvas = document.getElementById('gameCanvas');
 const ctx = canvas.getContext('2d');
-const livesDisplay = document.getElementById('lives');
-const scoreDisplay = document.getElementById('score');
 
-// Configurações Globais e Motor de Tempo
-let gameSpeed = 5;
+// === UNIDADES DE MEDIDA PROPORCIONAIS (1% DA TELA) ===
+const UW = canvas.width / 100;
+const UH = canvas.height / 100;
+
+export let gameSpeed = 5;
 const baseSpeed = 5; 
-let score = 0;
-let lives = 3;
-let isGameOver = false;
-let isPaused = false;
-let isFirstStart = true;
-let globalTimer = 0;
+export let score = 0;
+export let lives = 3;
+export let isGameOver = false;
+export let isPaused = false;
+export let isFirstStart = true;
+export let globalTimer = 0;
 
-// Variáveis de tempo
+export function setFirstStart(val) { isFirstStart = val; }
+
 let lastTime = performance.now();
 let dt = 1;
 const targetFps = 60;
 const frameTime = 1000 / targetFps;
 
 const keys = { jump: false };
-
-// --- CARREGAMENTO DE ASSETS (CORRIDA) ---
-const runFrames = [];
-const numRunFrames = 4;
-let runAssetsLoaded = 0;
-
-for (let i = 1; i <= numRunFrames; i++) {
-    const img = new Image();
-    img.src = `assets/player_run_${i}.png`;
-    img.onload = () => { runAssetsLoaded++; };
-    runFrames.push(img);
-}
-
-// --- CARREGAMENTO DE ASSETS (ATAQUE) ---
-const attackFrames = [];
-const numAttackFrames = 3;
-let attackAssetsLoaded = 0;
-
-for (let i = 1; i <= numAttackFrames; i++) {
-    const img = new Image();
-    img.src = `assets/player_attack_${i}.png`;
-    img.onload = () => { attackAssetsLoaded++; };
-    attackFrames.push(img);
-}
-
-// --- CARREGAMENTO DE ASSETS (PULO E VOO) ---
-const jumpSprite = new Image();
-jumpSprite.src = 'assets/player_jump.png';
-let jumpAssetLoaded = false;
-jumpSprite.onload = () => { jumpAssetLoaded = true; };
-
-const flyFrames = [];
-const numFlyFrames = 3;
-let flyAssetsLoaded = 0;
-
-for (let i = 1; i <= numFlyFrames; i++) {
-    const img = new Image();
-    img.src = `assets/player_fly_${i}.png`;
-    img.onload = () => { flyAssetsLoaded++; };
-    flyFrames.push(img);
-}
-
-// Objeto do Jogador
-const player = {
-    x: 120,
-    y: 100,
-    width: 32,
-    height: 48,
-    vy: 0,
-    gravity: 0.6,
-    jumpForce: -12,
-    doubleJumpForce: -8.4, 
-    isGrounded: false,
-    isAttacking: false,
-    attackTimer: 0,
-    attackDuration: 15,
-    attackBox: { x: 0, y: 0, width: 50, height: 48 },
-    invulnerableTimer: 0,
-    color: '#00ffcc',
-    
-    currentFrame: 0,
-    animationSpeed: 6,
-    currentAttackFrame: 0,
-    attackCooldownTimer: 0,
-
-    jumpCount: 0,
-    isFlying: false,
-    maxStamina: 60,       
-    stamina: 60,
-    staminaRegen: 0.1,    
-    flyFrame: 0,
-    flyAnimationSpeed: 5,
-
-    coyoteTimer: 0,
-    maxCoyoteFrames: 6,
-
-    comboKills: 0,
-    comboMultiplier: 1.0
-};
-
-// Arrays de Entidades
 let platforms = [];
 let entities = []; 
 let projectiles = [];
-let drops = [];
 
-function init() {
+export function init() {
     gameSpeed = baseSpeed;
     score = 0;
     lives = 3;
@@ -114,43 +52,25 @@ function init() {
     globalTimer = 0;
     lastTime = performance.now(); 
 
+    resetPlayer();
+
+    // Plataformas iniciais remapeadas dinamicamente usando as proporções da tela
     platforms = [
-        { x: 0, y: 300, width: 500, height: 200 },
-        { x: 600, y: 260, width: 400, height: 200 }
+        { x: 0, y: UH * 75, width: UW * 62.5, height: UH * 25 },
+        { x: UW * 75, y: UH * 65, width: UW * 50, height: UH * 35 }
     ];
     entities = [];
     projectiles = [];
-    drops = [];
     
-    player.x = 120;
-    player.y = 100;
-    player.vy = 0;
-    player.invulnerableTimer = 0;
-    player.isAttacking = false;
-    player.currentFrame = 0;
-    player.currentAttackFrame = 0;
-    player.attackCooldownTimer = 0;
-    
-    player.jumpCount = 0;
-    player.isFlying = false;
-    player.stamina = player.maxStamina;
-    player.coyoteTimer = 0;
-    player.comboKills = 0;
-    player.comboMultiplier = 1.0;
-    
-    updateUI();
+    updateUI(score, lives);
 }
 
-// Inputs
+// Inputs do Teclado Mapeados
 window.addEventListener('keydown', (e) => {
-    if (isFirstStart) {
-        isFirstStart = false;
-        return;
-    }
+    if (isFirstStart) return;
 
     if (['Space', 'KeyW', 'ArrowUp'].includes(e.code)) {
         e.preventDefault();
-        
         if (player.isGrounded || player.coyoteTimer > 0) {
             player.vy = player.jumpForce;
             player.isGrounded = false;
@@ -159,10 +79,13 @@ window.addEventListener('keydown', (e) => {
         } else if (player.jumpCount === 1) {
             player.vy = player.doubleJumpForce;
             player.jumpCount = 2;
-        } else if (player.jumpCount === 2 && player.stamina > 0) {
+        } else if (player.jumpCount === 2 && player.fuel > 0 && !player.isFuelLocked) {
+            // CORRIGIDO: Só dispara o som se o player NÃO estava voando no frame anterior
+            if (!player.isFlying) {
+                startRocketBootsSFX(); // Toca do começo apenas uma vez ao iniciar o voo
+            }
             player.isFlying = true;
         }
-        
         keys.jump = true;
     }
     if (['KeyD', 'KeyX', 'ArrowRight'].includes(e.code)) triggerAttack();
@@ -172,262 +95,218 @@ window.addEventListener('keydown', (e) => {
 window.addEventListener('keyup', (e) => {
     if (['Space', 'KeyW', 'ArrowUp'].includes(e.code)) {
         keys.jump = false;
+        if (player.isFlying) stopRocketBootsSFX(); // DESLIGA O SOM: Para o som de voo ao soltar o botão
         player.isFlying = false; 
     }
 });
 
 canvas.addEventListener('mousedown', (e) => {
-    if (isFirstStart) {
-        isFirstStart = false;
-        return;
-    }
+    if (isFirstStart) return;
     if (e.button === 0) triggerAttack();
 });
 
 function triggerAttack() {
-    // FIX: Usa <= 0 para garantir consistência com o Delta Time decimal
     if (!player.isAttacking && player.attackCooldownTimer <= 0 && !isGameOver && !isPaused && !isFirstStart) {
         player.isAttacking = true;
         player.attackTimer = player.attackDuration;
         player.currentAttackFrame = 0;
         player.attackCooldownTimer = 30;
+        playAttackSFX(); // Toca o som de ataque
     }
 }
 
-function updateUI() {
-    scoreDisplay.innerText = `Score: ${Math.floor(score)}`;
-    livesDisplay.innerText = 'HP: ' + '❤️'.repeat(Math.max(0, lives));
-}
-
-function checkCollision(rect1, rect2) {
-    return rect1.x < rect2.x + rect2.width &&
-           rect1.x + rect1.width > rect2.x &&
-           rect1.y < rect2.y + rect2.height &&
-           rect1.y + rect1.height > rect2.y;
-}
-
-// Loop Principal
 function loop(currentTime) {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 
     dt = (currentTime - lastTime) / frameTime;
     lastTime = currentTime;
 
-    if (dt > 4) dt = 1; // Failsafe para congelamento de aba
+    if (dt > 4) dt = 1; 
 
     if (!isGameOver && !isPaused && !isFirstStart) {
         globalTimer++;
-        updatePlayer(dt);
-        updatePlatforms(dt);
-        updateEntities(dt);
-        updateProjectiles(dt);
-        updateDrops(dt);
         
+        // Guarda o estado de voo antes da atualização para comparar depois
+        let wasFlyingBeforeUpdate = player.isFlying;
+
+        updatePlayerState(player, keys, globalTimer, dt, canvas.height);
+        
+        // NOVO / CORRIGIDO: Se o player parou de voar após o update (por pane seca ou corte)
+        // e o som ainda estava tocando, força o corte do sfx imediatamente
+        if (wasFlyingBeforeUpdate && !player.isFlying) {
+            stopRocketBootsSFX();
+        }
+        
+        if (player.isAttacking) {
+            player.attackTimer -= 1 * dt;
+            const progress = player.attackDuration - player.attackTimer;
+            const frameInterval = player.attackDuration / numAttackFrames;
+            player.currentAttackFrame = Math.min(Math.floor(progress / frameInterval), numAttackFrames - 1);
+            if (player.attackTimer <= 0) {
+                player.isAttacking = false;
+                player.attackTimer = 0;
+            }
+        }
+        player.attackBox.x = player.x + player.width;
+        player.attackBox.y = player.y;
+
+        if (player.invulnerableTimer > 0) {
+            player.invulnerableTimer -= 1 * dt;
+            if (player.invulnerableTimer < 0) player.invulnerableTimer = 0;
+        }
+        if (player.attackCooldownTimer > 0) {
+            player.attackCooldownTimer -= 1 * dt;
+            if (player.attackCooldownTimer < 0) player.attackCooldownTimer = 0;
+        }
+
+        // Colisões das plataformas locais
+        let wasGrounded = player.isGrounded;
+        player.isGrounded = false;
+        platforms.forEach(plat => {
+            if (player.x + player.width > plat.x &&
+                player.x < plat.x + plat.width &&
+                player.y + player.height <= plat.y + 12 &&
+                player.y + player.height + (player.vy * dt) >= plat.y) {
+                player.vy = 0;
+                player.y = plat.y - player.height;
+                player.isGrounded = true;
+                player.jumpCount = 0; 
+                player.coyoteTimer = player.maxCoyoteFrames; 
+            }
+        });
+
+        if (wasGrounded && !player.isGrounded && player.vy >= 0) {
+            player.coyoteTimer = player.maxCoyoteFrames;
+            player.jumpCount = 1; 
+        } else if (player.coyoteTimer > 0) {
+            player.coyoteTimer -= 1 * dt;
+        }
+
+        if (player.isGrounded && globalTimer % player.animationSpeed === 0) {
+            player.currentFrame = (player.currentFrame + 1) % numRunFrames;
+        }
+
+        if (player.y > canvas.height + 50) {
+            player.invulnerableTimer = 0;
+            takeDamage(3);
+        }
+
+        // Cenário e Spawns baseados no UW e UH progressivo
+        platforms = updatePlatformsState(platforms, gameSpeed, dt);
+        if (platforms.length < 5) {
+            const lastPlat = platforms[platforms.length - 1];
+            const nextPlat = createNewPlatform(lastPlat, gameSpeed, UW, UH);
+            platforms.push(nextPlat);
+            if (Math.random() > 0.3) {
+                entities.push(generateEnemy(nextPlat.x + nextPlat.width / 2, nextPlat.y, gameSpeed, nextPlat));
+            }
+        }
+
+        updateEntitiesLoop();
+        updateProjectilesLoop();
+
         score += 0.1 * player.comboMultiplier * dt;
-        
         if (globalTimer % 500 === 0) gameSpeed += 0.5;
-        updateUI();
+        updateUI(score, lives);
     }
 
     draw();
 
-    if (isFirstStart) drawFirstStart();
     if (isGameOver) drawGameOver();
-    if (isPaused && !isGameOver && !isFirstStart) drawPause();
+    if (isPaused && !isGameOver && !isFirstStart) drawPause(ctx, canvas);
 
     requestAnimationFrame(loop);
 }
 
-function updatePlayer(dt) {
-    if (player.isFlying && keys.jump && player.stamina > 0) {
-        player.vy = -3.5; 
-        player.stamina -= 1 * dt; 
-        
-        if (globalTimer % player.flyAnimationSpeed === 0) {
-            player.flyFrame = (player.flyFrame + 1) % numFlyFrames;
-        }
-
-        if (player.stamina <= 0) {
-            player.isFlying = false;
-            player.stamina = 0;
-        }
-    } else {
-        player.vy += player.gravity * dt;
-        player.isFlying = false;
-
-        if (player.isGrounded && player.stamina < player.maxStamina) {
-            player.stamina = Math.min(player.maxStamina, player.stamina + player.staminaRegen * dt);
-        }
-    }
-
-    player.y += player.vy * dt;
-    
-    let wasGrounded = player.isGrounded;
-    player.isGrounded = false;
-
-    // FIX: Redução dos contadores usando corte seguro em zero (Ataque parava por causa disso)
-    if (player.isAttacking) {
-        player.attackTimer -= 1 * dt;
-        const progress = player.attackDuration - player.attackTimer;
-        const frameInterval = player.attackDuration / numAttackFrames;
-        player.currentAttackFrame = Math.min(Math.floor(progress / frameInterval), numAttackFrames - 1);
-
-        if (player.attackTimer <= 0) {
-            player.isAttacking = false;
-            player.attackTimer = 0;
-        }
-    }
-
-    player.attackBox.x = player.x + player.width;
-    player.attackBox.y = player.y;
-
-    if (player.invulnerableTimer > 0) {
-        player.invulnerableTimer -= 1 * dt;
-        if (player.invulnerableTimer < 0) player.invulnerableTimer = 0;
-    }
-    if (player.attackCooldownTimer > 0) {
-        player.attackCooldownTimer -= 1 * dt;
-        if (player.attackCooldownTimer < 0) player.attackCooldownTimer = 0;
-    }
-
-    // Colisão com as Plataformas
-    platforms.forEach(plat => {
-        if (player.x + player.width > plat.x &&
-            player.x < plat.x + plat.width &&
-            player.y + player.height <= plat.y + 12 &&
-            player.y + player.height + (player.vy * dt) >= plat.y) {
-            
-            player.vy = 0;
-            player.y = plat.y - player.height;
-            player.isGrounded = true;
-            player.jumpCount = 0; 
-            player.coyoteTimer = player.maxCoyoteFrames; 
-        }
-    });
-
-    if (wasGrounded && !player.isGrounded && player.vy >= 0) {
-        player.coyoteTimer = player.maxCoyoteFrames;
-        player.jumpCount = 1; 
-    } else if (player.coyoteTimer > 0) {
-        player.coyoteTimer -= 1 * dt;
-    }
-
-    if (player.isGrounded) {
-        if (globalTimer % player.animationSpeed === 0) {
-            player.currentFrame = (player.currentFrame + 1) % numRunFrames;
-        }
-    }
-
-    // FIX ABSOLUTO: Queda no limbo agora limpa o estado de invulnerabilidade e força a morte instantânea
-    if (player.y > canvas.height + 50) {
-        player.invulnerableTimer = 0;
-        takeDamage(3);
-    }
-}
-
-function updatePlatforms(dt) {
-    platforms.forEach(plat => plat.x -= gameSpeed * dt);
-    platforms = platforms.filter(plat => plat.x + plat.width > 0);
-
-    if (platforms.length < 5) {
-        const lastPlat = platforms[platforms.length - 1];
-        
-        const minGap = 100, maxGap = 350; 
-        const minWidth = 180, maxWidth = 450;
-        
-        const gap = Math.random() * (maxGap - minGap) + minGap;
-        const width = Math.random() * (maxWidth - minWidth) + minWidth;
-        const nextX = lastPlat.x + lastPlat.width + gap;
-        const nextY = Math.floor(Math.random() * (350 - 120) + 120);
-
-        platforms.push({ x: nextX, y: nextY, width: width, height: 400 - nextY });
-
-        if (Math.random() > 0.3) {
-            spawnEntity(nextX + width / 2, nextY);
-        }
-    }
-}
-
-function spawnEntity(spawnX, platY) {
-    const types = ['runner_enemy', 'flyer_enemy', 'shooter_enemy', 'wall'];
-    const type = types[Math.floor(Math.random() * types.length)];
-
-    if (type === 'runner_enemy') {
-        entities.push({
-            type: 'runner', x: spawnX, y: platY - 36, width: 30, height: 36,
-            baseVx: -2, vy: 0, platFloorY: platY, color: '#ff0055'
-        });
-    } else if (type === 'flyer_enemy') {
-        entities.push({
-            type: 'flyer', x: spawnX, y: Math.random() * (platY - 100) + 40, width: 28, height: 28,
-            baseVx: 0, vy: 0, hasShot: false, platFloorY: platY, color: '#d600ff'
-        });
-    } else if (type === 'shooter_enemy') {
-        entities.push({
-            type: 'shooter', x: spawnX, y: Math.random() * (platY - 120) + 40, width: 32, height: 32,
-            baseVx: 0, vy: 0, isTracking: true, platFloorY: platY, color: '#00bfff'
-        });
-    } else {
-        entities.push({
-            type: 'wall', x: spawnX, y: 0, width: 30, height: platY,
-            baseVx: 0, vy: 0, platFloorY: platY, color: '#ffaa00'
-        });
-    }
-}
-
-function addCombo() {
-    player.comboKills++;
-    if (player.comboKills % 2 === 0) {
-        player.comboMultiplier = parseFloat((player.comboMultiplier + 0.1).toFixed(1));
-    }
-}
-
-function updateEntities(dt) {
+function updateEntitiesLoop() {
     entities.forEach((ent, index) => {
         if (ent.type === 'shooter' && ent.isTracking) {
             const dx = player.x - ent.x;
             const dy = player.y - ent.y;
             const dist = Math.sqrt(dx * dx + dy * dy);
-            const extraSpeed = 3.5;
-
             if (dist > 5) {
-                ent.x += ((dx / dist) * extraSpeed - gameSpeed) * dt;
-                ent.y += ((dy / dist) * extraSpeed) * dt;
-            } else {
-                ent.x -= gameSpeed * dt;
+                ent.x += ((dx / dist) * 3.5 - gameSpeed) * dt;
+                ent.y += ((dy / dist) * 3.5) * dt;
+            } else { 
+                ent.x -= gameSpeed * dt; 
             }
         } else {
-            const finalVx = -gameSpeed + (ent.baseVx || 0);
-            ent.x += finalVx * dt;
+            if (ent.type === 'runner') {
+                ent.platLeft -= gameSpeed * dt;
+                ent.platRight -= gameSpeed * dt;
+                
+                if (ent.x <= ent.platLeft && ent.baseVx < 0) {
+                    ent.baseVx = Math.abs(ent.baseVx); 
+                } else if (ent.x + ent.width >= ent.platRight && ent.baseVx > 0) {
+                    ent.baseVx = -Math.abs(ent.baseVx); 
+                }
+            }
+            ent.x += (-gameSpeed + (ent.baseVx || 0)) * dt;
             ent.y += ent.vy * dt;
         }
 
-        if (ent.type === 'flyer' && !ent.hasShot && ent.x < 750) {
-            const projX = ent.x;
-            const projY = ent.y + ent.height / 2;
-            const dx = (player.x + player.width / 2) - projX;
-            const dy = (player.y + player.height / 2) - projY;
+        if (ent.type === 'flyer' && !ent.hasShot && ent.x < (UW * 73.2)) {
+            const dx = (player.x + player.width / 2) - ent.x;
+            const dy = (player.y + player.height / 2) - (ent.y + ent.height / 2);
             const dist = Math.sqrt(dx * dx + dy * dy);
-            const projSpeed = gameSpeed + 5;
-
-            projectiles.push({
-                x: projX, y: projY, width: 14, height: 8,
-                vx: (dx / dist) * projSpeed, vy: (dy / dist) * projSpeed,
-                isReflected: false, color: '#ffea00'
+            
+            const missileHeight = 14; 
+            
+            projectiles.push({ 
+                x: ent.x, 
+                y: ent.y + ent.height / 2, 
+                height: missileHeight,
+                width: missileHeight * (300 / 100), 
+                vx: (dx / dist) * (gameSpeed + 5), 
+                vy: (dy / dist) * (gameSpeed + 5), 
+                isReflected: false, 
+                color: '#ffea00' 
             });
             ent.hasShot = true;
         }
 
+        // 1. COLISÃO DO ATAQUE MELEE (ESPADA) COM INIMIGOS
         if (player.isAttacking && checkCollision(player.attackBox, ent)) {
-            checkDrop(ent.x, ent.platFloorY); 
+            if (ent.type === 'carrier') {
+                if (ent.loot === 'life' && lives < 3) {
+                    lives++;
+                } else if (ent.loot === 'fuel') {
+                    player.fuel = Math.min(player.maxFuel, player.fuel + (player.maxFuel * 0.5));
+                }
+                playCarrierPickupSFX(); // TOCA SOM DE COLETA
+                updateUI(score, lives);
+            } 
+            else if (ent.type !== 'wall') {
+                playExplosionSFX(); // TOCA SOM DE EXPLOSÃO ALEATÓRIA
+                if (Math.random() <= 0.10) {
+                    entities.push(spawnCarrierDrone(ent.x, player.y));
+                }
+            }
+
             entities.splice(index, 1);
-            addCombo();
+            player.comboKills++;
+            if (player.comboKills % 2 === 0) player.comboMultiplier += 0.1;
             score += 50 * player.comboMultiplier;
-            return;
+            return; 
         }
 
+        // 2. COLISÃO DIRETA DO CORPO DO PLAYER COM INIMIGOS
         if (checkCollision(player, ent)) {
-            if (player.invulnerableTimer <= 0) {
+            if (ent.type === 'carrier') {
+                if (ent.loot === 'life' && lives < 3) {
+                    lives++;
+                } else if (ent.loot === 'fuel') {
+                    player.fuel = Math.min(player.maxFuel, player.fuel + (player.maxFuel * 0.5));
+                }
+                playCarrierPickupSFX(); // TOCA SOM DE COLETA NA BATIDA
+                updateUI(score, lives);
+                
+                entities.splice(index, 1);
+                score += 25 * player.comboMultiplier;
+            } else if (player.invulnerableTimer <= 0) {
+                if (ent.type !== 'wall') {
+                    playExplosionSFX(); // Inimigo explode ao bater no player invulnerável/causar dano
+                }
                 takeDamage(1);
                 entities.splice(index, 1); 
             }
@@ -437,149 +316,152 @@ function updateEntities(dt) {
     entities = entities.filter(ent => ent.x + ent.width > 0);
 }
 
-function updateProjectiles(dt) {
+function updateProjectilesLoop() {
     projectiles.forEach((proj, index) => {
         proj.x += proj.vx * dt;
         proj.y += proj.vy * dt;
 
         if (!proj.isReflected) {
-            if (checkCollision(proj, player)) {
-                projectiles.splice(index, 1);
-                takeDamage(1);
-                return;
-            }
-
+            if (checkCollision(proj, player)) { projectiles.splice(index, 1); takeDamage(1); return; }
             if (player.isAttacking && checkCollision(player.attackBox, proj)) {
-                proj.isReflected = true;
-                proj.color = '#00ff66';
-                score += 30 * player.comboMultiplier;
-
-                let closestEnemy = null;
-                let minDist = Infinity;
-
+                proj.isReflected = true; proj.color = '#00ff66'; score += 30 * player.comboMultiplier;
+                let closestEnemy = null, minDist = Infinity;
                 entities.forEach(ent => {
                     if (ent.type !== 'wall') {
-                        const dist = Math.sqrt(Math.pow(ent.x - proj.x, 2) + Math.pow(ent.y - proj.y, 2));
-                        if (dist < minDist) {
-                            minDist = dist;
-                            closestEnemy = ent;
-                        }
+                        const d = Math.sqrt(Math.pow(ent.x - proj.x, 2) + Math.pow(ent.y - proj.y, 2));
+                        if (d < minDist) { minDist = d; closestEnemy = ent; }
                     }
                 });
-
                 if (closestEnemy) {
-                    const rDx = closestEnemy.x - proj.x;
-                    const rDy = closestEnemy.y - proj.y;
-                    const rDist = Math.sqrt(rDx * rDx + rDy * rDy);
-                    proj.vx = (rDx / rDist) * 14; 
-                    proj.vy = (rDy / rDist) * 14;
-                } else {
-                    proj.vx = 14;
-                    proj.vy = 0;
-                }
-                return;
+                    const rDx = closestEnemy.x - proj.x, rDy = closestEnemy.y - proj.y, rDist = Math.sqrt(rDx * rDx + rDy * rDy);
+                    proj.vx = (rDx / rDist) * 14; proj.vy = (rDy / rDist) * 14;
+                } else { proj.vx = 14; proj.vy = 0; }
             }
         } else {
             entities.forEach((ent, eIdx) => {
                 if (checkCollision(proj, ent) && ent.type !== 'wall') {
-                    checkDrop(ent.x, ent.platFloorY);
-                    entities.splice(eIdx, 1);
+                    // CORRIGIDO: Ativa a explosão aleatória ao destruir o inimigo com o projétil rebatido!
+                    playExplosionSFX(); 
+                    
+                    entities.splice(eIdx, 1); 
                     projectiles.splice(index, 1);
-                    addCombo();
+                    player.comboKills++;
+                    if (player.comboKills % 2 === 0) player.comboMultiplier += 0.1;
                     score += 70 * player.comboMultiplier;
-                    return;
                 }
             });
         }
     });
-
     projectiles = projectiles.filter(p => p.x > 0 && p.x < canvas.width && p.y > 0 && p.y < canvas.height);
 }
 
-function checkDrop(x, platFloorY) {
-    if (Math.random() <= 0.10) {
-        drops.push({ x: x, y: platFloorY - 20, width: 20, height: 20, color: '#ff0055' });
-    }
-}
-
-function updateDrops(dt) {
-    drops.forEach((drop, index) => {
-        drop.x -= gameSpeed * dt;
-
-        if (checkCollision(player, drop)) {
-            if (lives < 3) {
-                lives++;
-                updateUI();
-            }
-            drops.splice(index, 1);
-            return;
-        }
-    });
-    drops = drops.filter(d => d.x + d.width > 0);
-}
-
-// FIX: Garante o fim de jogo imediato ao zerar vidas
 function takeDamage(amount) {
     if (player.invulnerableTimer <= 0 && !isGameOver) {
         lives -= amount;
         player.invulnerableTimer = 45;
-        
         player.comboKills = 0;
         player.comboMultiplier = 1.0;
-
-        updateUI();
-        if (lives <= 0) {
-            isGameOver = true;
-            lives = 0;
-            updateUI();
+        updateUI(score, lives);
+        if (lives <= 0) { 
+            isGameOver = true; 
+            lives = 0; 
+            gameBGM.pause(); // ADICIONADO: Para a música no Game Over
+            updateUI(score, lives); 
         }
     }
 }
 
 function draw() {
     // Desenha Plataformas
-    ctx.fillStyle = '#2c2e3e';
-    platforms.forEach(plat => {
-        ctx.fillRect(plat.x, plat.y, plat.width, plat.height);
-        ctx.fillStyle = '#ffffff';
-        ctx.fillRect(plat.x, plat.y, plat.width, 4);
-        ctx.fillStyle = '#2c2e3e';
+    platforms.forEach(plat => { 
+        ctx.fillStyle = '#2c2e3e'; ctx.fillRect(plat.x, plat.y, plat.width, plat.height); 
+        ctx.fillStyle = '#ffffff'; ctx.fillRect(plat.x, plat.y, plat.width, 4); 
     });
 
-    // Desenha Drops
-    drops.forEach(drop => {
-        ctx.fillStyle = drop.color;
-        ctx.font = '16px Courier New';
-        ctx.fillText('❤️', drop.x, drop.y + 14);
-    });
-
-    // Desenha Projéteis
+    // === DESENHA PROJÉTEIS (MÍSSEIS PROPORCIONAIS - 300x100) ===
     projectiles.forEach(proj => {
-        ctx.fillStyle = proj.color;
-        ctx.fillRect(proj.x, proj.y, proj.width, proj.height);
+        if (typeof missileAssetsLoaded !== 'undefined' && missileAssetsLoaded === numMissileFrames) {
+            const currentMissileFrame = Math.floor(globalTimer / 6) % numMissileFrames;
+            const sprite = missileFrames[currentMissileFrame];
+
+            ctx.save();
+            ctx.translate(proj.x + proj.width / 2, proj.y + proj.height / 2);
+            
+            const angle = Math.atan2(proj.vy, proj.vx);
+            ctx.rotate(angle);
+
+            if (proj.vx < 0) {
+                ctx.scale(1, -1);
+            }
+
+            // Renderiza respeitando o tamanho exato da caixa calculada por proporção
+            ctx.drawImage(sprite, -proj.width / 2, -proj.height / 2, proj.width, proj.height);
+            ctx.restore();
+        } else {
+            ctx.fillStyle = proj.color;
+            ctx.fillRect(proj.x, proj.y, proj.width, proj.height);
+        }
     });
 
-    // Desenha Inimigos
+    // === DESENHA INIMIGOS (TODOS RENDEREZADOS EM PROPORÇÃO PURA) ===
     entities.forEach(ent => {
-        ctx.fillStyle = ent.color;
-        ctx.fillRect(ent.x, ent.y, ent.width, ent.height);
-        
-        if (ent.type === 'wall') {
-            ctx.strokeStyle = '#222';
-            ctx.lineWidth = 2;
-            for (let i = 20; i < ent.height; i += 20) {
-                ctx.beginPath();
-                ctx.moveTo(ent.x, i);
-                ctx.lineTo(ent.x + ent.width, i);
-                ctx.stroke();
+        if (ent.type === 'runner' && typeof runnerAssetsLoaded !== 'undefined' && runnerAssetsLoaded >= 2) {
+            const currentRunnerFrame = Math.floor(globalTimer / 8) % 2; 
+            const sprite = runnerFrames[currentRunnerFrame];
+
+            ctx.save();
+            ctx.translate(ent.x + ent.width / 2, ent.y + ent.height / 2);
+
+            if (ent.baseVx < 0) {
+                ctx.scale(-1, 1);
+            }
+
+            ctx.drawImage(sprite, -ent.width / 2, -ent.height / 2, ent.width, ent.height);
+            ctx.restore();
+        }
+        else if (ent.type === 'flyer' && typeof shooterLoadedAssetLoaded !== 'undefined' && shooterLoadedAssetLoaded && shooterUnloadedAssetLoaded) {
+            const sprite = ent.hasShot ? shooterUnloadedSprite : shooterLoadedSprite;
+
+            ctx.save();
+            ctx.translate(ent.x + ent.width / 2, ent.y + ent.height / 2);
+
+            if (player.x < ent.x) {
+                ctx.scale(-1, 1);
+            }
+
+            ctx.drawImage(sprite, -ent.width / 2, -ent.height / 2, ent.width, ent.height);
+            ctx.restore();
+        } 
+        else if (ent.type === 'carrier') {
+            let sprite = null;
+            if (ent.loot === 'fuel' && carrierFuelAssetLoaded) sprite = carrierFuelSprite;
+            if (ent.loot === 'life' && carrierHealthAssetLoaded) sprite = carrierHealthSprite;
+
+            if (sprite) {
+                ctx.save();
+                ctx.translate(ent.x + ent.width / 2, ent.y + ent.height / 2);
+                ctx.scale(-1, 1);
+                ctx.drawImage(sprite, -ent.width / 2, -ent.height / 2, ent.width, ent.height);
+                ctx.restore();
+            } else {
+                ctx.fillStyle = ent.color;
+                ctx.fillRect(ent.x, ent.y, ent.width, ent.height);
+            }
+        }
+        else {
+            ctx.fillStyle = ent.color; ctx.fillRect(ent.x, ent.y, ent.width, ent.height);
+            if (ent.type === 'wall') {
+                ctx.strokeStyle = '#222'; ctx.lineWidth = 2;
+                for (let i = 20; i < ent.height; i += 20) { ctx.beginPath(); ctx.moveTo(ent.x, i); ctx.lineTo(ent.x + ent.width, i); ctx.stroke(); }
             }
         }
     });
 
-    // Desenha Player
+    // === DESENHA PLAYER (PROPORÇÃO CORRIGIDA) ===
     if (player.invulnerableTimer % 4 < 2) {
         if (player.isAttacking && attackAssetsLoaded === numAttackFrames) {
-            const attackVisualWidth = player.width + player.attackBox.width;
+            // Desenha o frame melee respeitando as proporções de ataque (925x470)
+            const attackVisualWidth = player.height * (925 / 470);
             ctx.drawImage(attackFrames[player.currentAttackFrame], player.x, player.y, attackVisualWidth, player.height);
         } else if (player.isFlying && flyAssetsLoaded === numFlyFrames) {
             ctx.drawImage(flyFrames[player.flyFrame], player.x, player.y, player.width, player.height);
@@ -588,85 +470,36 @@ function draw() {
         } else if (player.isGrounded && runAssetsLoaded === numRunFrames) {
             ctx.drawImage(runFrames[player.currentFrame], player.x, player.y, player.width, player.height);
         } else {
-            ctx.fillStyle = player.isAttacking ? '#ffff00' : player.color;
-            ctx.fillRect(player.x, player.y, player.width, player.height);
+            ctx.fillStyle = player.color; ctx.fillRect(player.x, player.y, player.width, player.height);
         }
     }
 
-    // Desenha Combo
     if (!isFirstStart && !isGameOver && player.comboMultiplier > 1.0) {
-        ctx.fillStyle = '#00ffcc';
-        ctx.font = 'bold 12px Courier New';
-        ctx.textAlign = 'left';
+        ctx.fillStyle = '#00ffcc'; ctx.font = 'bold 12px Courier New'; ctx.textAlign = 'left';
         ctx.fillText(`x${player.comboMultiplier.toFixed(1)}`, player.x + player.width + 6, player.y + 4);
     }
 
-    // Desenha HUD da Barra de Estamina
-    if (!isFirstStart && !isGameOver) {
-        const hudX = 20;
-        const hudY = 50; 
-        const hudWidth = 150;
-        const hudHeight = 8;
-
-        ctx.fillStyle = 'rgba(44, 46, 62, 0.8)';
-        ctx.fillRect(hudX, hudY, hudWidth, hudHeight);
-        ctx.strokeStyle = '#626a8a';
-        ctx.strokeRect(hudX, hudY, hudWidth, hudHeight);
-
-        const currentProgressWidth = (player.stamina / player.maxStamina) * hudWidth;
-        ctx.fillStyle = player.stamina < 15 ? '#ff0055' : '#00ffcc'; 
-        ctx.fillRect(hudX, hudY, currentProgressWidth, hudHeight);
-    }
+    if (!isFirstStart && !isGameOver) drawFuelBar(ctx, player);
 }
-
-function drawFirstStart() {}
 
 function drawGameOver() {
     const gameOverScreen = document.getElementById('game-over-screen');
-    if (gameOverScreen && gameOverScreen.style.display === 'none') {
-        gameOverScreen.style.display = 'flex';
-    }
+    if (gameOverScreen && gameOverScreen.style.display === 'none') gameOverScreen.style.display = 'flex';
 }
 
-function drawPause() {
-    ctx.fillStyle = 'rgba(13, 14, 21, 0.75)';
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
-    
-    ctx.fillStyle = '#00ffcc';
-    ctx.font = 'bold 30px Courier New';
-    ctx.textAlign = 'center';
-    ctx.fillText('PAUSED', canvas.width / 2, canvas.height / 2 - 60);
-    
-    ctx.fillStyle = '#fff';
-    ctx.font = '14px Courier New';
-    ctx.fillText('C O M A N D O S', canvas.width / 2, canvas.height / 2 - 10);
-    
-    ctx.fillStyle = '#626a8a';
-    ctx.fillText('------------------------------------------------', canvas.width / 2, canvas.height / 2 + 5);
-    
-    ctx.fillStyle = '#00ffcc';
-    ctx.fillText('W / ESPAÇO / ↑ :', canvas.width / 2 - 100, canvas.height / 2 + 25);
-    ctx.fillStyle = '#fff';
-    ctx.textAlign = 'left';
-    ctx.fillText('Pulo / Pulo Duplo / Voar (Segurar)', canvas.width / 2 - 30, canvas.height / 2 + 25);
-    
-    ctx.textAlign = 'center';
-    ctx.fillStyle = '#00ffcc';
-    ctx.fillText('D / X / CLIQUE  :', canvas.width / 2 - 100, canvas.height / 2 + 50);
-    ctx.fillStyle = '#fff';
-    ctx.textAlign = 'left';
-    ctx.fillText('Ataque Melee (Corta & Rebate Projéteis)', canvas.width / 2 - 30, canvas.height / 2 + 50);
-    
-    ctx.textAlign = 'center';
-    ctx.fillStyle = '#ffaa00';
-    ctx.fillText('Pressione [P] para despausar e continuar', canvas.width / 2, canvas.height / 2 + 95);
-}
+// === CONTROLE DO BOTÃO DE MUTE HTML ===
+const btnMute = document.getElementById('btn-mute');
+const muteIcon = document.getElementById('mute-icon');
 
-// Inicialização segura
-document.addEventListener('DOMContentLoaded', () => {
-    init();
-    requestAnimationFrame((timestamp) => {
-        lastTime = timestamp;
-        loop(timestamp);
-    });
+btnMute.addEventListener('click', () => {
+    const muted = toggleMute(); 
+    
+    // Troca o asset visual do botão nativamente
+    muteIcon.src = muted ? 'assets/ui/sound_off.webp' : 'assets/ui/sound_on.webp';
+    
+    // Tira o foco do botão para o jogador não "clicar" nele de novo sem querer ao apertar espaço
+    btnMute.blur(); 
 });
+
+init();
+requestAnimationFrame((timestamp) => { lastTime = timestamp; loop(timestamp); });

@@ -1,3 +1,6 @@
+import { init, setFirstStart } from './game.js';
+import { playMenuMusic, startGameMusic } from './audio.js';
+
 document.addEventListener('DOMContentLoaded', () => {
     const mainMenu = document.getElementById('main-menu');
     const gameScreen = document.getElementById('game-screen');
@@ -9,18 +12,16 @@ document.addEventListener('DOMContentLoaded', () => {
     const btnRestart = document.getElementById('btn-restart');
     const btnToMenu = document.getElementById('btn-to-menu');
 
-    // Lista com as dicas do jogo
     const tips = [
         "Dica: Sua estamina só recupera quando você está pisando no chão.",
-        "Dica: Ataque os projéteis amarelos para rebatê-los contra os inimigos.",
+        "Dica: Ataque os projéteis amarelos no tempo certo para rebatê-los contra os inimigos.",
         "Dica: Você fica invulnerável por alguns momentos após receber dano.",
         "Dica: Derrotar inimigos dá 10% de chance de dropar uma vida extra (❤️).",
         "Dica: O segundo pulo no ar tem apenas 70% da força do primeiro pulo.",
         "Dica: Manter o combo de eliminação ativo aumenta passivamente a velocidade de ganho de Score!",
-        "Dica: Correr para fora da plataforma te dá algulm tempo de tolerância para pular."
+        "Dica: Correr para fora da plataforma te dá um pouco de tolerância para pular."
     ];
 
-    // Função para escolher e exibir uma dica aleatória
     function showRandomTip() {
         if (gameOverTip) {
             const randomIndex = Math.floor(Math.random() * tips.length);
@@ -28,40 +29,47 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    // Iniciar Corrida do Menu Principal
+    // CORRIGIDO: Desbloqueia o áudio apenas se clicar no fundo do menu (evita conflito com o btn-run)
+    const unlockAudio = (e) => {
+        if (e.target !== btnRun) {
+            playMenuMusic();
+        }
+        document.removeEventListener('click', unlockAudio);
+    };
+    document.addEventListener('click', unlockAudio);
+
     btnRun.addEventListener('click', () => {
+        // Se foi o primeiro clique direto no botão, remove o listener global para não duplicar canais
+        document.removeEventListener('click', unlockAudio);
+        
         mainMenu.style.display = 'none';
         gameScreen.style.display = 'block';
         gameOverScreen.style.display = 'none';
+        setFirstStart(false); 
         
-        if (typeof isFirstStart !== 'undefined') {
-            isFirstStart = false;
-        }
-        if (typeof init === 'function') init(); 
+        startGameMusic(); 
+        init(); 
     });
 
-    // Recomeçar Direto da Tela de Game Over
     btnRestart.addEventListener('click', () => {
         gameOverScreen.style.display = 'none';
-        if (typeof init === 'function') init();
+        startGameMusic(); 
+        init();
     });
 
-    // Voltar ao Menu Principal
     btnToMenu.addEventListener('click', () => {
         gameScreen.style.display = 'none';
         mainMenu.style.display = 'flex';
         gameOverScreen.style.display = 'none';
+        setFirstStart(true);
         
-        if (typeof isFirstStart !== 'undefined') {
-            isFirstStart = true;
-        }
+        playMenuMusic(); 
     });
 
     btnHighscore.addEventListener('click', () => {
         console.log("Highscore clicado!");
     });
 
-    // Observador técnico: Roda a dica sempre que a engine do jogo mudar o display da tela de Game Over para flex
     const observer = new MutationObserver(() => {
         if (gameOverScreen.style.display === 'flex') {
             showRandomTip();
