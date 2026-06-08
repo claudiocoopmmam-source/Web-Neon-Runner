@@ -34,6 +34,14 @@ export let globalTimer = 0;
 
 export function setFirstStart(val) { isFirstStart = val; }
 
+export function togglePause(forceState) {
+    if (typeof forceState !== 'undefined') {
+        isPaused = forceState;
+    } else {
+        isPaused = !isPaused;
+    }
+}
+
 let lastTime = performance.now();
 let dt = 1;
 const targetFps = 60;
@@ -89,7 +97,7 @@ window.addEventListener('keydown', (e) => {
         keys.jump = true;
     }
     if (['KeyD', 'KeyX', 'ArrowRight'].includes(e.code)) triggerAttack();
-    if (e.code === 'KeyP' && !isGameOver) isPaused = !isPaused;
+    if (e.code === 'KeyP' && !isGameOver) togglePause();
 });
 
 window.addEventListener('keyup', (e) => {

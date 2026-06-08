@@ -1,4 +1,4 @@
-import { init, setFirstStart } from './game.js';
+import { init, setFirstStart, togglePause } from './game.js';
 import { playMenuMusic, startGameMusic, updateBGMVolume, updateSFXVolume, menuBGM } from './audio.js';
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -22,6 +22,15 @@ document.addEventListener('DOMContentLoaded', () => {
     const iconSFX = document.getElementById('icon-sfx');
 
     const subtitlesContainer = document.getElementById('subtitles-container');
+
+    // NOVOS: Mapeamento dos botões da tela de pause HTML
+    const pauseScreen = document.getElementById('pause-screen');
+    const btnResume = document.getElementById('btn-resume');
+    const btnPauseOptions = document.getElementById('btn-pause-options');
+    const btnPauseToMenu = document.getElementById('btn-pause-to-menu');
+
+    // Flag para sabermos de onde o jogador abriu a modal de opções
+    let openedFromPause = false;
 
     const tips = [
         "Dica: Seu combustível regenera mais devagar quando você esta no ar!",
@@ -76,7 +85,6 @@ document.addEventListener('DOMContentLoaded', () => {
     let currentSubtitleIndex = -1;
     let wordTimers = [];
 
-    // Limpa de forma elegante (ou força a morte se apertar PLAY)
     function clearSubtitles(immediate = false) {
         wordTimers.forEach(timer => clearTimeout(timer));
         wordTimers = [];
@@ -88,9 +96,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 const activeLines = subtitlesContainer.querySelectorAll('.subtitle-line');
                 activeLines.forEach(line => {
                     const words = line.querySelectorAll('.word');
-                    // Tirar a classe dispara o CSS reverso (Sumiço com expansão)
                     words.forEach(w => w.classList.remove('active')); 
-                    // Apaga do DOM só depois que a animação visual terminar
                     setTimeout(() => line.remove(), 600); 
                 });
             }
@@ -98,11 +104,9 @@ document.addEventListener('DOMContentLoaded', () => {
         currentSubtitleIndex = -1;
     }
 
-    // Traz a nova frase flutuante
     function displaySubtitleLine(text) {
         if (!subtitlesContainer) return;
         
-        // Garante o fade-out elegante nas palavras que já estão na tela
         const activeLines = subtitlesContainer.querySelectorAll('.subtitle-line');
         activeLines.forEach(line => {
             const words = line.querySelectorAll('.word');
@@ -113,7 +117,6 @@ document.addEventListener('DOMContentLoaded', () => {
         wordTimers.forEach(timer => clearTimeout(timer));
         wordTimers = [];
 
-        // Cria a linha nova que sobrepõe a antiga durante o crossfade
         const lineDiv = document.createElement('div');
         lineDiv.className = 'subtitle-line';
         
@@ -125,7 +128,6 @@ document.addEventListener('DOMContentLoaded', () => {
             span.innerText = wordText;
             lineDiv.appendChild(span);
 
-            // Efeito cascata: a palavra entra com Fade In diminuindo de tamanho
             const timer = setTimeout(() => {
                 span.classList.add('active');
             }, index * 160); 
@@ -138,7 +140,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     menuBGM.addEventListener('timeupdate', () => {
         if (mainMenu.style.display === 'none' && optionsMenu.style.display === 'none') {
-            clearSubtitles(true); // Se mudar de tela, mata tudo imediato
+            clearSubtitles(true); 
             return;
         }
 
@@ -159,7 +161,7 @@ document.addEventListener('DOMContentLoaded', () => {
             if (foundLine) {
                 displaySubtitleLine(foundLine.text);
             } else {
-                clearSubtitles(false); // Dispara o Fade-out final
+                clearSubtitles(false); 
             }
         }
     });
@@ -187,23 +189,54 @@ document.addEventListener('DOMContentLoaded', () => {
         iconSFX.src = val === 0 ? 'assets/ui/sound_off.webp' : 'assets/ui/sound_on.webp';
     });
 
+    // === COMPORTAMENTO DAS OPÇÕES (MENU PRINCIPAL) ===
     btnOptions.addEventListener('click', () => {
         document.removeEventListener('click', unlockAudio);
         if (audioUnlocker) audioUnlocker.style.display = 'none';
+        openedFromPause = false; 
         if (menuBGM.paused) playMenuMusic();
+        optionsMenu.style.display = 'flex';
+    });
+
+    // === COMPORTAMENTO DAS OPÇÕES (TELA DE PAUSE) ===
+    btnPauseOptions.addEventListener('click', () => {
+        openedFromPause = true; 
         optionsMenu.style.display = 'flex';
     });
 
     btnCloseOptions.addEventListener('click', () => {
         optionsMenu.style.display = 'none';
         btnCloseOptions.blur(); 
+        
+        if (!openedFromPause) {
+            if (menuBGM.paused) playMenuMusic();
+        }
     });
 
+    // === CONTROLES DE INTERAÇÃO DO PAUSE ===
+    btnResume.addEventListener('click', () => {
+        togglePause(false); // Retoma o jogo nativamente
+        btnResume.blur();
+    });
+
+    btnPauseToMenu.addEventListener('click', () => {
+        togglePause(false); // Garante que não volte travado
+        
+        pauseScreen.style.display = 'none';
+        gameScreen.style.display = 'none';
+        mainMenu.style.display = 'flex';
+        gameOverScreen.style.display = 'none';
+        setFirstStart(true);
+        
+        playMenuMusic();
+    });
+
+    // === GATILHOS DE EXECUÇÃO ===
     btnRun.addEventListener('click', () => {
         document.removeEventListener('click', unlockAudio);
         if (audioUnlocker) audioUnlocker.style.display = 'none';
         
-        clearSubtitles(true); // Oculta instantâneo ao ir para o gameplay
+        clearSubtitles(true); 
         mainMenu.style.display = 'none';
         gameScreen.style.display = 'block';
         gameOverScreen.style.display = 'none';
