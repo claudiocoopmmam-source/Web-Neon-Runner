@@ -14,7 +14,7 @@ import {
 } from './player.js';
 import { checkCollision, updatePlatformsState, createNewPlatform, generateEnemy, spawnCarrierDrone } from './entities.js';
 import { updateUI, drawPause, drawFuelBar } from './ui.js';
-import { toggleMute, gameBGM, playAttackSFX, startRocketBootsSFX, stopRocketBootsSFX, playExplosionSFX, playCarrierPickupSFX } from './audio.js';
+import { gameBGM, playAttackSFX, startRocketBootsSFX, stopRocketBootsSFX, playExplosionSFX, playCarrierPickupSFX } from './audio.js';
 
 const canvas = document.getElementById('gameCanvas');
 const ctx = canvas.getContext('2d');
@@ -210,10 +210,20 @@ function loop(currentTime) {
         updateUI(score, lives);
     }
 
+    // Subtítulo do loop no final do arquivo:
     draw();
 
     if (isGameOver) drawGameOver();
-    if (isPaused && !isGameOver && !isFirstStart) drawPause(ctx, canvas);
+    
+    // Controla a exibição da tela de pause em sincronia com a flag isPaused
+    const pauseScreenEl = document.getElementById('pause-screen');
+    if (pauseScreenEl) {
+        if (isPaused && !isGameOver && !isFirstStart) {
+            drawPause(ctx, canvas);
+        } else {
+            pauseScreenEl.style.display = 'none'; // Esconde na hora se isPaused for false
+        }
+    }
 
     requestAnimationFrame(loop);
 }
@@ -487,19 +497,6 @@ function drawGameOver() {
     if (gameOverScreen && gameOverScreen.style.display === 'none') gameOverScreen.style.display = 'flex';
 }
 
-// === CONTROLE DO BOTÃO DE MUTE HTML ===
-const btnMute = document.getElementById('btn-mute');
-const muteIcon = document.getElementById('mute-icon');
-
-btnMute.addEventListener('click', () => {
-    const muted = toggleMute(); 
-    
-    // Troca o asset visual do botão nativamente
-    muteIcon.src = muted ? 'assets/ui/sound_off.webp' : 'assets/ui/sound_on.webp';
-    
-    // Tira o foco do botão para o jogador não "clicar" nele de novo sem querer ao apertar espaço
-    btnMute.blur(); 
-});
 
 init();
 requestAnimationFrame((timestamp) => { lastTime = timestamp; loop(timestamp); });

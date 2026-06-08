@@ -165,3 +165,213 @@ canvas {
     line-height: 1.4;
     width: 100%;
 }
+
+/* Tela de Desbloqueio de Áudio */
+#audio-unlocker {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 1024px;
+    height: 576px;
+    background: #0d0e15;
+    z-index: 200; /* Fica acima de tudo, inclusive do botão de mute */
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    border-radius: 4px;
+}
+
+.unlock-text {
+    color: #00ffcc;
+    font-size: 1.5rem;
+    font-weight: bold;
+    letter-spacing: 3px;
+    text-shadow: 0 0 10px rgba(0, 255, 204, 0.5);
+    animation: pulse 1.5s infinite;
+}
+
+@keyframes pulse {
+    0% { opacity: 0.3; }
+    50% { opacity: 1; }
+    100% { opacity: 0.3; }
+}
+
+/* === TELA E CONTROLES DE OPÇÕES === */
+#options-menu {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 1024px;
+    height: 576px;
+    background: rgba(13, 14, 21, 0.95);
+    z-index: 150;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 30px;
+    border-radius: 4px;
+}
+
+#options-menu h2 {
+    color: #00ffcc;
+    font-size: 2.5rem;
+    letter-spacing: 4px;
+    text-shadow: 0 0 15px rgba(0, 255, 204, 0.4);
+}
+
+.option-row {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+    width: 400px;
+}
+
+.option-row label {
+    color: #626a8a;
+    font-weight: bold;
+    letter-spacing: 2px;
+    font-size: 1.1rem;
+}
+
+.slider-container {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    width: 100%;
+}
+
+.slider-container img {
+    width: 44px;
+    height: 32px; /* Proporção exata para 208x152 */
+    display: block;
+}
+
+.slider-container input[type="range"] {
+    flex-grow: 1;
+    appearance: none;
+    background: #2c2e3e;
+    height: 8px;
+    border-radius: 4px;
+    outline: none;
+}
+
+.slider-container input[type="range"]::-webkit-slider-thumb {
+    appearance: none;
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    background: #00ffcc;
+    cursor: pointer;
+    box-shadow: 0 0 8px #00ffcc;
+    transition: transform 0.1s;
+}
+
+.slider-container input[type="range"]::-webkit-slider-thumb:hover {
+    transform: scale(1.2);
+}
+
+#btn-close-options {
+    margin-top: 20px;
+    color: #ffaa00;
+    border-color: #ffaa00;
+    box-shadow: 0 0 10px rgba(255, 170, 0, 0.2);
+}
+
+#btn-close-options:hover {
+    background: #ffaa00;
+    color: #0d0e15;
+    box-shadow: 0 0 20px #ffaa00;
+}
+
+/* === TELA DE PAUSE SOBREPOSTA === */
+#pause-screen {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 1024px;
+    height: 576px;
+    background: rgba(13, 14, 21, 0.85);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 35px;
+    border-radius: 4px;
+    z-index: 50;
+}
+
+#pause-screen h2 {
+    color: #00ffcc;
+    font-size: 3rem;
+    letter-spacing: 4px;
+    text-shadow: 0 0 15px rgba(0, 255, 204, 0.5);
+}
+
+#pause-buttons {
+    display: flex;
+    gap: 20px;
+}
+
+#btn-pause-to-menu {
+    color: #ffaa00;
+    border-color: #ffaa00;
+    box-shadow: 0 0 10px rgba(255, 170, 0, 0.2);
+}
+
+#btn-pause-to-menu:hover {
+    background: #ffaa00;
+    color: #0d0e15;
+    box-shadow: 0 0 20px #ffaa00;
+}
+
+/* === SISTEMA DE LEGENDAS DINÂMICAS === */
+#subtitles-container {
+    position: absolute;
+    bottom: 15px; /* Movido mais para baixo, fugindo da arte central */
+    left: 50%;
+    transform: translateX(-50%);
+    width: 900px;
+    text-align: center;
+    font-family: 'Courier New', Courier, monospace;
+    font-size: 1.3rem;
+    font-weight: bold;
+    letter-spacing: 1px;
+    line-height: 1.6;
+    pointer-events: none; 
+    z-index: 110; 
+    min-height: 60px; 
+}
+
+.subtitle-line {
+    position: absolute;
+    bottom: 0;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 100%;
+    display: flex;
+    justify-content: center;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+/* Estado Inicial e Final (Transparente, grande e borrado) */
+#subtitles-container .word {
+    display: inline-block;
+    opacity: 0;
+    filter: blur(5px);
+    transform: scale(1.6); /* Começa gigante para dar o efeito de recuo */
+    color: #626a8a;
+    transition: opacity 0.5s ease, filter 0.5s ease, transform 0.5s cubic-bezier(0.2, 0.8, 0.2, 1), color 0.5s ease;
+}
+
+/* Estado Ativo (Visível, nítido e ancorado no tamanho original) */
+#subtitles-container .word.active {
+    opacity: 1;
+    filter: blur(0);
+    transform: scale(1);
+    color: #00ffcc;
+    text-shadow: 0 0 8px rgba(0, 255, 204, 0.4);
+}

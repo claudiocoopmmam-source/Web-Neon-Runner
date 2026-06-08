@@ -9,15 +9,42 @@
 <body>
 
     <div id="game-wrapper">
-        <button id="btn-mute" title="Mutar/Desmutar áudio" style="position: absolute; top: 20px; right: 20px; z-index: 100; background: transparent; border: none; cursor: pointer; padding: 0; outline: none; width: 44px; height: 32px;">
-            <img id="mute-icon" src="assets/ui/sound_on.webp" alt="Volume" style="width: 100%; height: 100%; display: block;">
-        </button>
+        <div id="audio-unlocker">
+            <div class="unlock-text">CLIQUE EM QUALQUER LUGAR PARA INICIAR</div>
+        </div>
 
         <div id="main-menu">
             <div id="menu-buttons-container">
                 <button id="btn-run" class="menu-btn">CORRER</button>
+                <button id="btn-options" class="menu-btn">OPÇÕES</button>
                 <button id="btn-highscore" class="menu-btn">HIGHSCORE</button>
             </div>
+        </div>
+
+        <div id="subtitles-container"></div>
+
+        <div id="options-menu" style="display: none;">
+
+        <div id="options-menu" style="display: none;">
+            <h2>OPÇÕES</h2>
+            
+            <div class="option-row">
+                <label>MÚSICA (BGM)</label>
+                <div class="slider-container">
+                    <img id="icon-bgm" src="assets/ui/sound_on.webp" alt="Música">
+                    <input type="range" id="slider-bgm" min="0" max="1" step="0.05" value="0.15">
+                </div>
+            </div>
+
+            <div class="option-row">
+                <label>EFEITOS (SFX)</label>
+                <div class="slider-container">
+                    <img id="icon-sfx" src="assets/ui/sound_on.webp" alt="SFX">
+                    <input type="range" id="slider-sfx" min="0" max="1" step="0.05" value="0.50">
+                </div>
+            </div>
+
+            <button id="btn-close-options" class="menu-btn">VOLTAR</button>
         </div>
 
         <div id="game-screen" style="display: none;">
@@ -29,6 +56,15 @@
             <div id="canvas-container" style="position: relative; width: 1024px; height: 576px;">
                 <canvas id="gameCanvas" width="1024" height="576"></canvas>
                 
+                <div id="pause-screen" style="display: none;">
+                    <h2>PAUSADO</h2>
+                    <div id="pause-buttons">
+                        <button id="btn-resume" class="menu-btn">RETOMAR</button>
+                        <button id="btn-pause-options" class="menu-btn">OPÇÕES</button>
+                        <button id="btn-pause-to-menu" class="menu-btn">MENU</button>
+                    </div>
+                </div>
+
                 <div id="game-over-screen" style="display: none;">
                     <h2>GAME OVER</h2>
                     <p id="game-over-tip" style="color: #626a8a; font-size: 1rem; text-align: center; max-width: 500px; line-height: 1.4; font-style: italic;"></p>
