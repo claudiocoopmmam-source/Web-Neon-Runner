@@ -10,16 +10,17 @@ import {
     shooterUnloadedSprite, shooterUnloadedAssetLoaded,
     missileFrames, missileAssetsLoaded, numMissileFrames,
     carrierFuelSprite, carrierFuelAssetLoaded,
-    carrierHealthSprite, carrierHealthAssetLoaded
+    carrierHealthSprite, carrierHealthAssetLoaded,
+    flyerFrames, flyerAssetsLoaded,
+    deathSprite, deathAssetLoaded
 } from './player.js';
 import { checkCollision, updatePlatformsState, createNewPlatform, generateEnemy, spawnCarrierDrone } from './entities.js';
 import { updateUI, drawPause, drawFuelBar } from './ui.js';
-import { gameBGM, playAttackSFX, startRocketBootsSFX, stopRocketBootsSFX, playExplosionSFX, playCarrierPickupSFX } from './audio.js';
+import { gameBGM, playAttackSFX, startRocketBootsSFX, stopRocketBootsSFX, playExplosionSFX, playCarrierPickupSFX, playPlayerHurtSFX, playPlayerDeathSFX } from './audio.js';
 
 const canvas = document.getElementById('gameCanvas');
 const ctx = canvas.getContext('2d');
 
-// === UNIDADES DE MEDIDA PROPORCIONAIS (1% DA TELA) ===
 const UW = canvas.width / 100;
 const UH = canvas.height / 100;
 
@@ -62,7 +63,6 @@ export function init() {
 
     resetPlayer();
 
-    // Plataformas iniciais remapeadas dinamicamente usando as proporções da tela
     platforms = [
         { x: 0, y: UH * 75, width: UW * 62.5, height: UH * 25 },
         { x: UW * 75, y: UH * 65, width: UW * 50, height: UH * 35 }
@@ -73,7 +73,6 @@ export function init() {
     updateUI(score, lives);
 }
 
-// Inputs do Teclado Mapeados
 window.addEventListener('keydown', (e) => {
     if (isFirstStart) return;
 
@@ -88,9 +87,8 @@ window.addEventListener('keydown', (e) => {
             player.vy = player.doubleJumpForce;
             player.jumpCount = 2;
         } else if (player.jumpCount === 2 && player.fuel > 0 && !player.isFuelLocked) {
-            // CORRIGIDO: Só dispara o som se o player NÃO estava voando no frame anterior
             if (!player.isFlying) {
-                startRocketBootsSFX(); // Toca do começo apenas uma vez ao iniciar o voo
+                startRocketBootsSFX();
             }
             player.isFlying = true;
         }
@@ -103,7 +101,7 @@ window.addEventListener('keydown', (e) => {
 window.addEventListener('keyup', (e) => {
     if (['Space', 'KeyW', 'ArrowUp'].includes(e.code)) {
         keys.jump = false;
-        if (player.isFlying) stopRocketBootsSFX(); // DESLIGA O SOM: Para o som de voo ao soltar o botão
+        if (player.isFlying) stopRocketBootsSFX();
         player.isFlying = false; 
     }
 });
@@ -119,7 +117,7 @@ function triggerAttack() {
         player.attackTimer = player.attackDuration;
         player.currentAttackFrame = 0;
         player.attackCooldownTimer = 30;
-        playAttackSFX(); // Toca o som de ataque
+        playAttackSFX();
     }
 }
 
@@ -131,105 +129,112 @@ function loop(currentTime) {
 
     if (dt > 4) dt = 1; 
 
-    if (!isGameOver && !isPaused && !isFirstStart) {
+    // Ajustado: O mundo continua vivo se não estiver pausado e nem no menu inicial
+    if (!isPaused && !isFirstStart) {
         globalTimer++;
-        
-        // Guarda o estado de voo antes da atualização para comparar depois
-        let wasFlyingBeforeUpdate = player.isFlying;
 
-        updatePlayerState(player, keys, globalTimer, dt, canvas.height);
-        
-        // NOVO / CORRIGIDO: Se o player parou de voar após o update (por pane seca ou corte)
-        // e o som ainda estava tocando, força o corte do sfx imediatamente
-        if (wasFlyingBeforeUpdate && !player.isFlying) {
-            stopRocketBootsSFX();
-        }
-        
-        if (player.isAttacking) {
-            player.attackTimer -= 1 * dt;
-            const progress = player.attackDuration - player.attackTimer;
-            const frameInterval = player.attackDuration / numAttackFrames;
-            player.currentAttackFrame = Math.min(Math.floor(progress / frameInterval), numAttackFrames - 1);
-            if (player.attackTimer <= 0) {
-                player.isAttacking = false;
-                player.attackTimer = 0;
+        if (!isGameOver) {
+            // === JOGABILIDADE ATIVA NORMAL ===
+            let wasFlyingBeforeUpdate = player.isFlying;
+
+            updatePlayerState(player, keys, globalTimer, dt, canvas.height);
+            
+            if (wasFlyingBeforeUpdate && !player.isFlying) {
+                stopRocketBootsSFX();
             }
-        }
-        player.attackBox.x = player.x + player.width;
-        player.attackBox.y = player.y;
-
-        if (player.invulnerableTimer > 0) {
-            player.invulnerableTimer -= 1 * dt;
-            if (player.invulnerableTimer < 0) player.invulnerableTimer = 0;
-        }
-        if (player.attackCooldownTimer > 0) {
-            player.attackCooldownTimer -= 1 * dt;
-            if (player.attackCooldownTimer < 0) player.attackCooldownTimer = 0;
-        }
-
-        // Colisões das plataformas locais
-        let wasGrounded = player.isGrounded;
-        player.isGrounded = false;
-        platforms.forEach(plat => {
-            if (player.x + player.width > plat.x &&
-                player.x < plat.x + plat.width &&
-                player.y + player.height <= plat.y + 12 &&
-                player.y + player.height + (player.vy * dt) >= plat.y) {
-                player.vy = 0;
-                player.y = plat.y - player.height;
-                player.isGrounded = true;
-                player.jumpCount = 0; 
-                player.coyoteTimer = player.maxCoyoteFrames; 
+            
+            if (player.isAttacking) {
+                player.attackTimer -= 1 * dt;
+                const progress = player.attackDuration - player.attackTimer;
+                const frameInterval = player.attackDuration / numAttackFrames;
+                player.currentAttackFrame = Math.min(Math.floor(progress / frameInterval), numAttackFrames - 1);
+                if (player.attackTimer <= 0) {
+                    player.isAttacking = false;
+                    player.attackTimer = 0;
+                }
             }
-        });
+            player.attackBox.x = player.x + player.width;
+            player.attackBox.y = player.y;
 
-        if (wasGrounded && !player.isGrounded && player.vy >= 0) {
-            player.coyoteTimer = player.maxCoyoteFrames;
-            player.jumpCount = 1; 
-        } else if (player.coyoteTimer > 0) {
-            player.coyoteTimer -= 1 * dt;
+            if (player.invulnerableTimer > 0) {
+                player.invulnerableTimer -= 1 * dt;
+                if (player.invulnerableTimer < 0) player.invulnerableTimer = 0;
+            }
+            if (player.attackCooldownTimer > 0) {
+                player.attackCooldownTimer -= 1 * dt;
+                if (player.attackCooldownTimer < 0) player.attackCooldownTimer = 0;
+            }
+
+            let wasGrounded = player.isGrounded;
+            player.isGrounded = false;
+            platforms.forEach(plat => {
+                if (player.x + player.width > plat.x &&
+                    player.x < plat.x + plat.width &&
+                    player.y + player.height <= plat.y + 12 &&
+                    player.y + player.height + (player.vy * dt) >= plat.y) {
+                    player.vy = 0;
+                    player.y = plat.y - player.height;
+                    player.isGrounded = true;
+                    player.jumpCount = 0; 
+                    player.coyoteTimer = player.maxCoyoteFrames; 
+                }
+            });
+
+            if (wasGrounded && !player.isGrounded && player.vy >= 0) {
+                player.coyoteTimer = player.maxCoyoteFrames;
+                player.jumpCount = 1; 
+            } else if (player.coyoteTimer > 0) {
+                player.coyoteTimer -= 1 * dt;
+            }
+
+            if (player.isGrounded && globalTimer % player.animationSpeed === 0) {
+                player.currentFrame = (player.currentFrame + 1) % numRunFrames;
+            }
+
+            if (player.y > canvas.height + 50) {
+                player.invulnerableTimer = 0;
+                takeDamage(3);
+            }
+
+            score += 0.1 * player.comboMultiplier * dt;
+            if (globalTimer % 500 === 0) gameSpeed += 0.5;
+            updateUI(score, lives);
+
+        } else {
+            // === COMPORTAMENTO DE GAME OVER CORRIGIDO ===
+            // Mantém a gravidade agindo para o corpo cair atravessando tudo de forma curva
+            player.vy += player.gravity * dt;
+            player.y += player.vy * dt;
         }
 
-        if (player.isGrounded && globalTimer % player.animationSpeed === 0) {
-            player.currentFrame = (player.currentFrame + 1) % numRunFrames;
-        }
-
-        if (player.y > canvas.height + 50) {
-            player.invulnerableTimer = 0;
-            takeDamage(3);
-        }
-
-        // Cenário e Spawns baseados no UW e UH progressivo
+        // === ROLAGEM DO MUNDO (Executa sempre, mesmo no Game Over!) ===
         platforms = updatePlatformsState(platforms, gameSpeed, dt);
         if (platforms.length < 5) {
             const lastPlat = platforms[platforms.length - 1];
             const nextPlat = createNewPlatform(lastPlat, gameSpeed, UW, UH);
             platforms.push(nextPlat);
-            if (Math.random() > 0.3) {
+            
+            // MODIFICADO: Só gera novos inimigos se NÃO for Game Over, limpando a pista pós-morte
+            if (!isGameOver && Math.random() > 0.3) {
                 entities.push(generateEnemy(nextPlat.x + nextPlat.width / 2, nextPlat.y, gameSpeed, nextPlat));
             }
         }
 
+        // Atualiza movimentações de robôs e tiros em segundo plano
         updateEntitiesLoop();
         updateProjectilesLoop();
-
-        score += 0.1 * player.comboMultiplier * dt;
-        if (globalTimer % 500 === 0) gameSpeed += 0.5;
-        updateUI(score, lives);
     }
 
-    // Subtítulo do loop no final do arquivo:
     draw();
 
     if (isGameOver) drawGameOver();
     
-    // Controla a exibição da tela de pause em sincronia com a flag isPaused
     const pauseScreenEl = document.getElementById('pause-screen');
     if (pauseScreenEl) {
         if (isPaused && !isGameOver && !isFirstStart) {
             drawPause(ctx, canvas);
         } else {
-            pauseScreenEl.style.display = 'none'; // Esconde na hora se isPaused for false
+            pauseScreenEl.style.display = 'none'; 
         }
     }
 
@@ -238,9 +243,12 @@ function loop(currentTime) {
 
 function updateEntitiesLoop() {
     entities.forEach((ent, index) => {
-        if (ent.type === 'shooter' && ent.isTracking) {
-            const dx = player.x - ent.x;
-            const dy = player.y - ent.y;
+        if (ent.type === 'flyer') {
+            // CORRIGIDO: Se for Game Over, a Dragonfly para de mirar para baixo e voa reto em linha horizontal
+            const targetX = isGameOver ? ent.x - 100 : player.x;
+            const targetY = isGameOver ? ent.y : player.y;
+            const dx = targetX - ent.x;
+            const dy = targetY - ent.y;
             const dist = Math.sqrt(dx * dx + dy * dy);
             if (dist > 5) {
                 ent.x += ((dx / dist) * 3.5 - gameSpeed) * dt;
@@ -263,7 +271,16 @@ function updateEntitiesLoop() {
             ent.y += ent.vy * dt;
         }
 
-        if (ent.type === 'flyer' && !ent.hasShot && ent.x < (UW * 73.2)) {
+        if (ent.type === 'flyer') {
+            ent.frameTimer += 1 * dt;
+            if (ent.frameTimer >= ent.animationSpeed) {
+                ent.currentFrame = (ent.currentFrame + 1) % 2;
+                ent.frameTimer = 0;
+            }
+        }
+
+        // CORRIGIDO: O atirador só gera mísseis novos se o jogo ainda estiver rolando
+        if (!isGameOver && ent.type === 'shooter' && !ent.hasShot && ent.x < (UW * 73.2)) {
             const dx = (player.x + player.width / 2) - ent.x;
             const dy = (player.y + player.height / 2) - (ent.y + ent.height / 2);
             const dist = Math.sqrt(dx * dx + dy * dy);
@@ -283,50 +300,53 @@ function updateEntitiesLoop() {
             ent.hasShot = true;
         }
 
-        // 1. COLISÃO DO ATAQUE MELEE (ESPADA) COM INIMIGOS
-        if (player.isAttacking && checkCollision(player.attackBox, ent)) {
-            if (ent.type === 'carrier') {
-                if (ent.loot === 'life' && lives < 3) {
-                    lives++;
-                } else if (ent.loot === 'fuel') {
-                    player.fuel = Math.min(player.maxFuel, player.fuel + (player.maxFuel * 0.5));
+        // CORRIGIDO: Bloqueia qualquer colisão ou iteração física caso o player já esteja morto
+        if (!isGameOver) {
+            // 1. COLISÃO DO ATAQUE MELEE (ESPADA) COM INIMIGOS
+            if (player.isAttacking && checkCollision(player.attackBox, ent)) {
+                if (ent.type === 'carrier') {
+                    if (ent.loot === 'life' && lives < 3) {
+                        lives++;
+                    } else if (ent.loot === 'fuel') {
+                        player.fuel = Math.min(player.maxFuel, player.fuel + (player.maxFuel * 0.5));
+                    }
+                    playCarrierPickupSFX(); 
+                    updateUI(score, lives);
+                } 
+                else if (ent.type !== 'wall') {
+                    playExplosionSFX(); 
+                    if (Math.random() <= 0.10) {
+                        entities.push(spawnCarrierDrone(ent.x, player.y));
+                    }
                 }
-                playCarrierPickupSFX(); // TOCA SOM DE COLETA
-                updateUI(score, lives);
-            } 
-            else if (ent.type !== 'wall') {
-                playExplosionSFX(); // TOCA SOM DE EXPLOSÃO ALEATÓRIA
-                if (Math.random() <= 0.10) {
-                    entities.push(spawnCarrierDrone(ent.x, player.y));
-                }
+
+                entities.splice(index, 1);
+                player.comboKills++;
+                if (player.comboKills % 2 === 0) player.comboMultiplier += 0.1;
+                score += 50 * player.comboMultiplier;
+                return; 
             }
 
-            entities.splice(index, 1);
-            player.comboKills++;
-            if (player.comboKills % 2 === 0) player.comboMultiplier += 0.1;
-            score += 50 * player.comboMultiplier;
-            return; 
-        }
-
-        // 2. COLISÃO DIRETA DO CORPO DO PLAYER COM INIMIGOS
-        if (checkCollision(player, ent)) {
-            if (ent.type === 'carrier') {
-                if (ent.loot === 'life' && lives < 3) {
-                    lives++;
-                } else if (ent.loot === 'fuel') {
-                    player.fuel = Math.min(player.maxFuel, player.fuel + (player.maxFuel * 0.5));
+            // 2. COLISÃO DIRETA DO CORPO DO PLAYER COM INIMIGOS
+            if (checkCollision(player, ent)) {
+                if (ent.type === 'carrier') {
+                    if (ent.loot === 'life' && lives < 3) {
+                        lives++;
+                    } else if (ent.loot === 'fuel') {
+                        player.fuel = Math.min(player.maxFuel, player.fuel + (player.maxFuel * 0.5));
+                    }
+                    playCarrierPickupSFX(); 
+                    updateUI(score, lives);
+                    
+                    entities.splice(index, 1);
+                    score += 25 * player.comboMultiplier;
+                } else if (player.invulnerableTimer <= 0) {
+                    if (ent.type !== 'wall') {
+                        playExplosionSFX(); 
+                    }
+                    takeDamage(1);
+                    entities.splice(index, 1); 
                 }
-                playCarrierPickupSFX(); // TOCA SOM DE COLETA NA BATIDA
-                updateUI(score, lives);
-                
-                entities.splice(index, 1);
-                score += 25 * player.comboMultiplier;
-            } else if (player.invulnerableTimer <= 0) {
-                if (ent.type !== 'wall') {
-                    playExplosionSFX(); // Inimigo explode ao bater no player invulnerável/causar dano
-                }
-                takeDamage(1);
-                entities.splice(index, 1); 
             }
         }
     });
@@ -340,8 +360,9 @@ function updateProjectilesLoop() {
         proj.y += proj.vy * dt;
 
         if (!proj.isReflected) {
-            if (checkCollision(proj, player)) { projectiles.splice(index, 1); takeDamage(1); return; }
-            if (player.isAttacking && checkCollision(player.attackBox, proj)) {
+            // CORRIGIDO: Mísseis ativos ignoram o player morto se for Game Over
+            if (!isGameOver && checkCollision(proj, player)) { projectiles.splice(index, 1); takeDamage(1); return; }
+            if (!isGameOver && player.isAttacking && checkCollision(player.attackBox, proj)) {
                 proj.isReflected = true; proj.color = '#00ff66'; score += 30 * player.comboMultiplier;
                 let closestEnemy = null, minDist = Infinity;
                 entities.forEach(ent => {
@@ -358,7 +379,6 @@ function updateProjectilesLoop() {
         } else {
             entities.forEach((ent, eIdx) => {
                 if (checkCollision(proj, ent) && ent.type !== 'wall') {
-                    // CORRIGIDO: Ativa a explosão aleatória ao destruir o inimigo com o projétil rebatido!
                     playExplosionSFX(); 
                     
                     entities.splice(eIdx, 1); 
@@ -380,11 +400,15 @@ function takeDamage(amount) {
         player.comboKills = 0;
         player.comboMultiplier = 1.0;
         updateUI(score, lives);
+        
         if (lives <= 0) { 
             isGameOver = true; 
             lives = 0; 
-            gameBGM.pause(); // ADICIONADO: Para a música no Game Over
+            gameBGM.pause(); 
+            playPlayerDeathSFX(); 
             updateUI(score, lives); 
+        } else {
+            playPlayerHurtSFX(); 
         }
     }
 }
@@ -396,7 +420,7 @@ function draw() {
         ctx.fillStyle = '#ffffff'; ctx.fillRect(plat.x, plat.y, plat.width, 4); 
     });
 
-    // === DESENHA PROJÉTEIS (MÍSSEIS PROPORCIONAIS - 300x100) ===
+    // Desenha Projéteis (Mísseis)
     projectiles.forEach(proj => {
         if (typeof missileAssetsLoaded !== 'undefined' && missileAssetsLoaded === numMissileFrames) {
             const currentMissileFrame = Math.floor(globalTimer / 6) % numMissileFrames;
@@ -412,7 +436,6 @@ function draw() {
                 ctx.scale(1, -1);
             }
 
-            // Renderiza respeitando o tamanho exato da caixa calculada por proporção
             ctx.drawImage(sprite, -proj.width / 2, -proj.height / 2, proj.width, proj.height);
             ctx.restore();
         } else {
@@ -421,7 +444,7 @@ function draw() {
         }
     });
 
-    // === DESENHA INIMIGOS (TODOS RENDEREZADOS EM PROPORÇÃO PURA) ===
+    // Desenha Inimigos (Runner, Flyer/Dragonfly, Shooter, Carrier)
     entities.forEach(ent => {
         if (ent.type === 'runner' && typeof runnerAssetsLoaded !== 'undefined' && runnerAssetsLoaded >= 2) {
             const currentRunnerFrame = Math.floor(globalTimer / 8) % 2; 
@@ -429,23 +452,26 @@ function draw() {
 
             ctx.save();
             ctx.translate(ent.x + ent.width / 2, ent.y + ent.height / 2);
-
-            if (ent.baseVx < 0) {
-                ctx.scale(-1, 1);
-            }
-
+            if (ent.baseVx < 0) ctx.scale(-1, 1);
             ctx.drawImage(sprite, -ent.width / 2, -ent.height / 2, ent.width, ent.height);
             ctx.restore();
         }
-        else if (ent.type === 'flyer' && typeof shooterLoadedAssetLoaded !== 'undefined' && shooterLoadedAssetLoaded && shooterUnloadedAssetLoaded) {
+        else if (ent.type === 'flyer' && typeof flyerAssetsLoaded !== 'undefined' && flyerAssetsLoaded === 2) {
+            const sprite = flyerFrames[ent.currentFrame];
+
+            ctx.save();
+            ctx.translate(ent.x + ent.width / 2, ent.y + ent.height / 2);
+            if (player.x < ent.x) ctx.scale(-1, 1); 
+
+            ctx.drawImage(sprite, -ent.width / 2, -ent.height / 2, ent.width, ent.height);
+            ctx.restore();
+        } 
+        else if (ent.type === 'shooter' && typeof shooterLoadedAssetLoaded !== 'undefined' && shooterLoadedAssetLoaded && shooterUnloadedAssetLoaded) {
             const sprite = ent.hasShot ? shooterUnloadedSprite : shooterLoadedSprite;
 
             ctx.save();
             ctx.translate(ent.x + ent.width / 2, ent.y + ent.height / 2);
-
-            if (player.x < ent.x) {
-                ctx.scale(-1, 1);
-            }
+            if (player.x < ent.x) ctx.scale(-1, 1);
 
             ctx.drawImage(sprite, -ent.width / 2, -ent.height / 2, ent.width, ent.height);
             ctx.restore();
@@ -475,10 +501,13 @@ function draw() {
         }
     });
 
-    // === DESENHA PLAYER (PROPORÇÃO CORRIGIDA) ===
-    if (player.invulnerableTimer % 4 < 2) {
+    // === DESENHA PLAYER (PROPORÇÃO E MORTE CONFIGURADAS) ===
+    if (isGameOver && typeof deathAssetLoaded !== 'undefined' && deathAssetLoaded) {
+        // CORRIGIDO: Força o desenho da sprite de morte continuamente ao perder a run
+        ctx.drawImage(deathSprite, player.x, player.y, player.width, player.height);
+    } 
+    else if (player.invulnerableTimer % 4 < 2) {
         if (player.isAttacking && attackAssetsLoaded === numAttackFrames) {
-            // Desenha o frame melee respeitando as proporções de ataque (925x470)
             const attackVisualWidth = player.height * (925 / 470);
             ctx.drawImage(attackFrames[player.currentAttackFrame], player.x, player.y, attackVisualWidth, player.height);
         } else if (player.isFlying && flyAssetsLoaded === numFlyFrames) {
@@ -492,11 +521,13 @@ function draw() {
         }
     }
 
+    // Indicador numérico do Combo Multiplier
     if (!isFirstStart && !isGameOver && player.comboMultiplier > 1.0) {
         ctx.fillStyle = '#00ffcc'; ctx.font = 'bold 12px Courier New'; ctx.textAlign = 'left';
         ctx.fillText(`x${player.comboMultiplier.toFixed(1)}`, player.x + player.width + 6, player.y + 4);
     }
 
+    // HUD da barra de combustível
     if (!isFirstStart && !isGameOver) drawFuelBar(ctx, player);
 }
 
@@ -504,7 +535,6 @@ function drawGameOver() {
     const gameOverScreen = document.getElementById('game-over-screen');
     if (gameOverScreen && gameOverScreen.style.display === 'none') gameOverScreen.style.display = 'flex';
 }
-
 
 init();
 requestAnimationFrame((timestamp) => { lastTime = timestamp; loop(timestamp); });

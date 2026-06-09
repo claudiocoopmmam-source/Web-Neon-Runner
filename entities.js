@@ -34,20 +34,20 @@ export function generateEnemy(spawnX, platY, gameSpeed, plat) {
     const type = types[Math.floor(Math.random() * types.length)];
 
     if (type === 'runner_enemy') {
-        const targetHeight = 50; // Altura base do robô com rodas
-        const targetWidth = targetHeight * (480 / 310); // Largura proporcional (~77.4px)
+        const targetHeight = 50; 
+        const targetWidth = targetHeight * (480 / 310); 
         
         return { 
             type: 'runner', 
             x: spawnX, 
-            y: platY - targetHeight, // Alinha perfeitamente no chão da plataforma
+            y: platY - targetHeight, 
             height: targetHeight,
             width: targetWidth, 
-            baseVx: -2, // Velocidade de patrulha
+            baseVx: -2, 
             vy: 0, 
             platFloorY: platY,
-            platLeft: plat.x, // Limite esquerdo salvo
-            platRight: plat.x + plat.width, // Limite direito salvo
+            platLeft: plat.x, 
+            platRight: plat.x + plat.width, 
             color: '#ff0055' 
         };
     } else if (type === 'flyer_enemy') {
@@ -57,12 +57,14 @@ export function generateEnemy(spawnX, platY, gameSpeed, plat) {
             x: spawnX, 
             y: Math.random() * (platY - 140) + 40, 
             height: targetHeight,
-            width: targetHeight * (260 / 220), // Proporção (~53.1px)
+            width: targetHeight * (523 / 351), // Proporção da Dragonfly
             baseVx: 0, 
             vy: 0, 
-            hasShot: false, 
             platFloorY: platY, 
-            color: '#d600ff' 
+            color: '#d600ff',
+            currentFrame: 0,
+            frameTimer: 0,
+            animationSpeed: 6 
         };
     } else if (type === 'shooter_enemy') {
         const targetHeight = 45;
@@ -74,8 +76,7 @@ export function generateEnemy(spawnX, platY, gameSpeed, plat) {
             width: targetHeight * (260 / 220), 
             baseVx: 0, 
             vy: 0, 
-            isTracking: true, 
-            hasShot: false, 
+            hasShot: false, // Controla o carregamento/disparo do míssil
             platFloorY: platY, 
             color: '#00bfff' 
         };
@@ -91,7 +92,7 @@ export function spawnCarrierDrone(spawnX, playerY) {
 
     return {
         type: 'carrier',
-        x: 1050, // CORRIGIDO: Nasce a 1050px (logo após a borda do canvas de 1024px) para entrar voando suavemente
+        x: 1050, 
         y: Math.max(40, Math.min(480, playerY - Math.random() * 80)),
         height: targetHeight,
         width: targetHeight * (192 / 270), 

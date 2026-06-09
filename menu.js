@@ -23,13 +23,15 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const subtitlesContainer = document.getElementById('subtitles-container');
 
-    // NOVOS: Mapeamento dos botões da tela de pause HTML
     const pauseScreen = document.getElementById('pause-screen');
     const btnResume = document.getElementById('btn-resume');
     const btnPauseOptions = document.getElementById('btn-pause-options');
     const btnPauseToMenu = document.getElementById('btn-pause-to-menu');
 
-    // Flag para sabermos de onde o jogador abriu a modal de opções
+    // NOVOS: Mapeamento das setas do carrossel de dicas
+    const btnPrevTip = document.getElementById('btn-prev-tip');
+    const btnNextTip = document.getElementById('btn-next-tip');
+
     let openedFromPause = false;
 
     const tips = [
@@ -41,13 +43,21 @@ document.addEventListener('DOMContentLoaded', () => {
         "Dica: Coletar ou atacar o carrier azul aumenta 50% da sua barra de combustível.",
         "Dica: O segundo pulo no ar tem apenas 70% da força do primeiro pulo.",
         "Dica: Manter o combo de eliminação ativo aumenta passivamente a velocidade de ganho de Score!",
-        "Dica: Correr para fora da plataforma te dá um pouco de tolerância para pular."
+        "Dica: Correr para fora da plataforma te dá um pouco de tolerância para pular.",
+        "Dica: Aperte o botão de pulo três vezes seguidas e segure para acionar os propulsores de voo!",
+        "Dica: Derrotar qualquer inimigo da uma chance de fazer surgir um Drone de Suprimentos!",
+        "Dica: Os robôs Atiradores esvaziam o pente após o primeiro disparo. Aproveite a brecha para atacar!",
+        "Dica: Receber dano reseta seu multiplicador de Score."
     ];
 
-    function showRandomTip() {
-        if (gameOverTip) {
-            const randomIndex = Math.floor(Math.random() * tips.length);
-            gameOverTip.innerText = tips[randomIndex];
+    // NOVO: Controla a posição atual do índice da lista de dicas
+    let currentTipIndex = 0;
+
+    // NOVO: Renderiza a dica baseada no índice com rotação infinita segura
+    function showTip(index) {
+        if (gameOverTip && tips.length > 0) {
+            currentTipIndex = (index + tips.length) % tips.length;
+            gameOverTip.innerText = tips[currentTipIndex];
         }
     }
 
@@ -88,7 +98,6 @@ document.addEventListener('DOMContentLoaded', () => {
     function clearSubtitles(immediate = false) {
         wordTimers.forEach(timer => clearTimeout(timer));
         wordTimers = [];
-        
         if (subtitlesContainer) {
             if (immediate) {
                 subtitlesContainer.innerHTML = '';
@@ -106,35 +115,26 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function displaySubtitleLine(text) {
         if (!subtitlesContainer) return;
-        
         const activeLines = subtitlesContainer.querySelectorAll('.subtitle-line');
         activeLines.forEach(line => {
             const words = line.querySelectorAll('.word');
             words.forEach(w => w.classList.remove('active'));
             setTimeout(() => line.remove(), 600);
         });
-
         wordTimers.forEach(timer => clearTimeout(timer));
         wordTimers = [];
 
         const lineDiv = document.createElement('div');
         lineDiv.className = 'subtitle-line';
-        
         const words = text.split(' ');
-        
         words.forEach((wordText, index) => {
             const span = document.createElement('span');
             span.classList.add('word');
             span.innerText = wordText;
             lineDiv.appendChild(span);
-
-            const timer = setTimeout(() => {
-                span.classList.add('active');
-            }, index * 160); 
-
+            const timer = setTimeout(() => { span.classList.add('active'); }, index * 160); 
             wordTimers.push(timer);
         });
-
         subtitlesContainer.appendChild(lineDiv);
     }
 
@@ -143,31 +143,21 @@ document.addEventListener('DOMContentLoaded', () => {
             clearSubtitles(true); 
             return;
         }
-
         const currentTime = menuBGM.currentTime;
         let foundLine = null;
         let foundIndex = -1;
-
         for (let i = 0; i < subtitleData.length; i++) {
             if (currentTime >= subtitleData[i].start && currentTime <= subtitleData[i].end) {
-                foundLine = subtitleData[i];
-                foundIndex = i;
-                break;
+                foundLine = subtitleData[i]; foundIndex = i; break;
             }
         }
-
         if (foundIndex !== currentSubtitleIndex) {
             currentSubtitleIndex = foundIndex;
-            if (foundLine) {
-                displaySubtitleLine(foundLine.text);
-            } else {
-                clearSubtitles(false); 
-            }
+            if (foundLine) { displaySubtitleLine(foundLine.text); } else { clearSubtitles(false); }
         }
     });
 
     const audioUnlocker = document.getElementById('audio-unlocker');
-
     const unlockAudio = (e) => {
         if (!e.target.closest('#btn-run') && !e.target.closest('#btn-options')) {
             if (menuBGM.paused) playMenuMusic();
@@ -178,18 +168,15 @@ document.addEventListener('DOMContentLoaded', () => {
     document.addEventListener('click', unlockAudio);
 
     sliderBGM.addEventListener('input', (e) => {
-        const val = parseFloat(e.target.value);
-        updateBGMVolume(val);
+        const val = parseFloat(e.target.value); updateBGMVolume(val);
         iconBGM.src = val === 0 ? 'assets/ui/sound_off.webp' : 'assets/ui/sound_on.webp';
     });
 
     sliderSFX.addEventListener('input', (e) => {
-        const val = parseFloat(e.target.value);
-        updateSFXVolume(val);
+        const val = parseFloat(e.target.value); updateSFXVolume(val);
         iconSFX.src = val === 0 ? 'assets/ui/sound_off.webp' : 'assets/ui/sound_on.webp';
     });
 
-    // === COMPORTAMENTO DAS OPÇÕES (MENU PRINCIPAL) ===
     btnOptions.addEventListener('click', () => {
         document.removeEventListener('click', unlockAudio);
         if (audioUnlocker) audioUnlocker.style.display = 'none';
@@ -198,82 +185,60 @@ document.addEventListener('DOMContentLoaded', () => {
         optionsMenu.style.display = 'flex';
     });
 
-    // === COMPORTAMENTO DAS OPÇÕES (TELA DE PAUSE) ===
     btnPauseOptions.addEventListener('click', () => {
-        openedFromPause = true; 
-        optionsMenu.style.display = 'flex';
+        openedFromPause = true; optionsMenu.style.display = 'flex';
     });
 
     btnCloseOptions.addEventListener('click', () => {
-        optionsMenu.style.display = 'none';
-        btnCloseOptions.blur(); 
-        
-        if (!openedFromPause) {
-            if (menuBGM.paused) playMenuMusic();
-        }
+        optionsMenu.style.display = 'none'; btnCloseOptions.blur(); 
+        if (!openedFromPause && menuBGM.paused) playMenuMusic();
     });
 
-    // === CONTROLES DE INTERAÇÃO DO PAUSE ===
-    btnResume.addEventListener('click', () => {
-        togglePause(false); // Retoma o jogo nativamente
-        btnResume.blur();
-    });
+    btnResume.addEventListener('click', () => { togglePause(false); btnResume.blur(); });
 
     btnPauseToMenu.addEventListener('click', () => {
-        togglePause(false); // Garante que não volte travado
-        
-        pauseScreen.style.display = 'none';
-        gameScreen.style.display = 'none';
-        mainMenu.style.display = 'flex';
-        gameOverScreen.style.display = 'none';
-        setFirstStart(true);
-        
-        playMenuMusic();
+        togglePause(false);
+        pauseScreen.style.display = 'none'; gameScreen.style.display = 'none';
+        mainMenu.style.display = 'flex'; gameOverScreen.style.display = 'none';
+        setFirstStart(true); playMenuMusic();
     });
 
-    // === GATILHOS DE EXECUÇÃO ===
+    // === OUVINTES DAS SETAS DE DICAS DE GAME OVER ===
+    if (btnPrevTip && btnNextTip) {
+        btnPrevTip.addEventListener('click', () => { showTip(currentTipIndex - 1); });
+        btnNextTip.addEventListener('click', () => { showTip(currentTipIndex + 1); });
+    }
+
     btnRun.addEventListener('click', () => {
         document.removeEventListener('click', unlockAudio);
         if (audioUnlocker) audioUnlocker.style.display = 'none';
-        
         clearSubtitles(true); 
-        mainMenu.style.display = 'none';
-        gameScreen.style.display = 'block';
-        gameOverScreen.style.display = 'none';
-        setFirstStart(false); 
-        
-        startGameMusic(); 
-        init(); 
+        mainMenu.style.display = 'none'; gameScreen.style.display = 'block';
+        gameOverScreen.style.display = 'none'; setFirstStart(false); 
+        startGameMusic(); init(); 
     });
 
     btnRestart.addEventListener('click', () => {
-        gameOverScreen.style.display = 'none';
-        startGameMusic(); 
-        init();
+        gameOverScreen.style.display = 'none'; startGameMusic(); init();
     });
 
     btnToMenu.addEventListener('click', () => {
-        gameScreen.style.display = 'none';
-        mainMenu.style.display = 'flex';
-        gameOverScreen.style.display = 'none';
-        setFirstStart(true);
-        
-        playMenuMusic(); 
+        gameScreen.style.display = 'none'; mainMenu.style.display = 'flex';
+        gameOverScreen.style.display = 'none'; setFirstStart(true); playMenuMusic(); 
     });
 
-    btnHighscore.addEventListener('click', () => {
-        console.log("Highscore clicado!");
-    });
+    btnHighscore.addEventListener('click', () => { console.log("Highscore clicado!"); });
 
     let tipCharged = false;
-
     const observer = new MutationObserver((mutations) => {
         mutations.forEach((mutation) => {
             if (mutation.attributeName === 'style') {
                 const isFlex = gameOverScreen.style.display === 'flex';
                 
                 if (isFlex && !tipCharged) {
-                    showRandomTip();
+                    // ATUALIZADO: Sorteia a dica inicial da tela, permitindo ciclar a partir dela
+                    const randomIndex = Math.floor(Math.random() * tips.length);
+                    showTip(randomIndex);
                     tipCharged = true;
                 } else if (!isFlex) {
                     tipCharged = false;
@@ -281,6 +246,5 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         });
     });
-
     observer.observe(gameOverScreen, { attributes: true, attributeFilter: ['style'] });
 });

@@ -375,3 +375,35 @@ canvas {
     color: #00ffcc;
     text-shadow: 0 0 8px rgba(0, 255, 204, 0.4);
 }
+/* === CARROSSEL DE DICAS (GAME OVER) === */
+#tip-carousel {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 20px;
+    width: 100%;
+    max-width: 700px;
+}
+
+.tip-arrow {
+    background: transparent;
+    border: none;
+    color: #626a8a;
+    font-size: 2.5rem; /* Setas grandes e minimalistas */
+    font-family: monospace;
+    font-weight: 100;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    outline: none;
+    padding: 0 15px;
+    user-select: none;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.tip-arrow:hover {
+    color: #00ffcc;
+    text-shadow: 0 0 10px #00ffcc, 0 0 20px #00ffcc; /* Brilho neon intenso */
+    transform: scale(1.25);
+}

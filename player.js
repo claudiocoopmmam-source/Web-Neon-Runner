@@ -75,7 +75,23 @@ carrierHealthSprite.src = 'assets/enemy_carrier_health.webp';
 export let carrierHealthAssetLoaded = false;
 carrierHealthSprite.onload = () => { carrierHealthAssetLoaded = true; };
 
-// Objeto de Estado Global do Player
+// Sprites do Flyer (Dragonfly)
+export const flyerFrames = [];
+export const numFlyerFrames = 2;
+export let flyerAssetsLoaded = 0;
+for (let i = 1; i <= numFlyerFrames; i++) {
+    const img = new Image();
+    img.src = `assets/enemy_flyer_walk${i}.webp`;
+    img.onload = () => { flyerAssetsLoaded++; };
+    flyerFrames.push(img);
+}
+
+// Sprite de Morte do Player
+export const deathSprite = new Image();
+deathSprite.src = 'assets/player_death.webp';
+export let deathAssetLoaded = false;
+deathSprite.onload = () => { deathAssetLoaded = true; };
+
 // Objeto de Estado Global do Player - Totalmente Proporcional (320x500)
 export const player = {
     x: 120,
@@ -99,8 +115,6 @@ export const player = {
     animationSpeed: 6,
     jumpCount: 0,
     isFlying: false,
-    
-    // CORRIGIDO: Capacidade máxima aumentada em 10%
     maxFuel: 66,       
     fuel: 66,          
     fuelRegen: 0.15,    
@@ -124,7 +138,7 @@ export function resetPlayer() {
     player.attackCooldownTimer = 0;
     player.jumpCount = 0;
     player.isFlying = false;
-    player.fuel = player.maxFuel; // Inicia com o novo tanque cheio (66)
+    player.fuel = player.maxFuel;
     player.isFuelLocked = false;
     player.coyoteTimer = 0;
     player.comboKills = 0;
@@ -153,9 +167,7 @@ export function updatePlayerState(player, keys, globalTimer, dt, canvasHeight) {
         player.vy += player.gravity * dt;
         
         if (player.fuel < player.maxFuel) {
-            // Regeneração de combustível mais rápida quando o jogador está no chão, e mais lenta no ar
             const currentRegen = player.isGrounded ? player.fuelRegen : 0.06;
-            
             player.fuel = Math.min(player.maxFuel, player.fuel + currentRegen * dt);
         }
     }

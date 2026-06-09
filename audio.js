@@ -126,3 +126,34 @@ export function playCarrierPickupSFX() {
     pickupSFX.volume = currentSFXVolume;
     pickupSFX.play().catch(err => console.log("Erro ao reproduzir coleta do carrier SFX:", err));
 }
+
+// === VOZES DE DANO E MORTE DO PLAYER ===
+
+const playerHurtVoices = [
+    'assets/sfx/player_hurt1_sfx.opus',
+    'assets/sfx/player_hurt2_sfx.opus',
+    'assets/sfx/player_hurt3_sfx.opus'
+];
+
+const playerDeathVoices = [
+    'assets/sfx/player_death1_sfx.opus',
+    'assets/sfx/player_death2_sfx.opus',
+    'assets/sfx/player_death3_sfx.opus',
+    'assets/sfx/player_death4_sfx.opus'
+];
+
+export function playPlayerHurtSFX() {
+    if (currentSFXVolume <= 0) return; // Não inicializa áudio se o slider estiver zerado
+    const randomHurtSrc = playerHurtVoices[Math.floor(Math.random() * playerHurtVoices.length)];
+    const hurtSFX = new Audio(randomHurtSrc);
+    hurtSFX.volume = currentSFXVolume; // Sincronizado com as configurações de opções
+    hurtSFX.play().catch(err => console.log("Erro ao reproduzir voz de dano SFX:", err));
+}
+
+export function playPlayerDeathSFX() {
+    if (currentSFXVolume <= 0) return;
+    const randomDeathSrc = playerDeathVoices[Math.floor(Math.random() * playerDeathVoices.length)];
+    const deathSFX = new Audio(randomDeathSrc);
+    deathSFX.volume = currentSFXVolume;
+    deathSFX.play().catch(err => console.log("Erro ao reproduzir voz de morte SFX:", err));
+}
