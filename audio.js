@@ -2,7 +2,7 @@
 
 export const menuBGM = new Audio('assets/BGM/Cosmic_Shadows_Menu_BGM.opus');
 menuBGM.loop = true;
-menuBGM.volume = 0.15; // Valor inicial correspondente ao slider BGM
+menuBGM.volume = 0.15; 
 
 const gameTracks = [
     'assets/BGM/Runic_Circuit_BGM.opus', 
@@ -10,10 +10,14 @@ const gameTracks = [
 ];
 
 export const gameBGM = new Audio();
-gameBGM.volume = 0.15; // Valor inicial correspondente ao slider BGM
+gameBGM.volume = 0.15; 
 let currentTrackIndex = 0;
 
-// Variável para repassar dinamicamente o volume atual do slider de SFX para novos áudios instanciados
+// NOVO: Música tema da tela de Game Over
+export const gameOverBGM = new Audio('assets/BGM/Last Signal_BGM.opus');
+gameOverBGM.loop = true;
+gameOverBGM.volume = 0.15;
+
 export let currentSFXVolume = 0.50; 
 
 gameBGM.addEventListener('ended', () => {
@@ -24,8 +28,8 @@ gameBGM.addEventListener('ended', () => {
 
 export function playMenuMusic() {
     gameBGM.pause();
+    gameOverBGM.pause(); // Garante o desligamento da música de morte
     menuBGM.muted = false;
-    //  Só dá play do início se ela não estiver tocando atualmente
     if (menuBGM.paused) {
         menuBGM.currentTime = 0;
         menuBGM.play().catch(err => console.log("Áudio bloqueado pelo navegador."));
@@ -34,22 +38,31 @@ export function playMenuMusic() {
 
 export function startGameMusic() {
     menuBGM.pause();
+    gameOverBGM.pause(); // Garante o desligamento da música de morte
     currentTrackIndex = 0;
     gameBGM.src = gameTracks[currentTrackIndex];
-    // Garante que o áudio volte despausado caso o jogo tenha sido mutado/alterado nas opções
     gameBGM.muted = false; 
     gameBGM.play().catch(err => console.log("Erro ao iniciar trilha do jogo:", err));
 }
 
-// NOVAS: Atualizações em tempo real disparadas pelos inputs do menu de opções
+// NOVO: Dispara a música de Game Over cortando as anteriores
+export function playGameOverMusic() {
+    gameBGM.pause();
+    menuBGM.pause();
+    gameOverBGM.muted = false;
+    gameOverBGM.currentTime = 0;
+    gameOverBGM.play().catch(err => console.log("Erro ao tocar música de Game Over:", err));
+}
+
 export function updateBGMVolume(volume) {
     menuBGM.volume = volume;
     gameBGM.volume = volume;
+    gameOverBGM.volume = volume; // Vincula ao slider de opções
 }
 
 export function updateSFXVolume(volume) {
     currentSFXVolume = volume;
-    rocketBootsSFX.volume = volume; // Atualiza a bota jato que já está instanciada
+    rocketBootsSFX.volume = volume; 
 }
 
 // === EFEITOS SONOROS (SFX) ===
@@ -69,7 +82,7 @@ const swordStrikes = [
 ];
 
 export function playAttackSFX() {
-    if (currentSFXVolume <= 0) return; // Se o volume for zero, não inicializa áudio à toa
+    if (currentSFXVolume <= 0) return; 
 
     const randomVoiceSrc = attackVoices[Math.floor(Math.random() * attackVoices.length)];
     const randomStrikeSrc = swordStrikes[Math.floor(Math.random() * swordStrikes.length)];
@@ -83,14 +96,12 @@ export function playAttackSFX() {
     strikeSFX.play().catch(err => console.log("Erro ao reproduzir corte SFX:", err));
 }
 
-// Instância persistente para o som contínuo das botas a jato
 export const rocketBootsSFX = new Audio('assets/sfx/player_rocketboots_sfx.opus');
 rocketBootsSFX.loop = false; 
-rocketBootsSFX.volume = 0.50; // Inicializa casado com o slider de SFX
+rocketBootsSFX.volume = 0.50; 
 
 export function startRocketBootsSFX() {
     if (currentSFXVolume <= 0) return;
-    
     if (rocketBootsSFX.paused) {
         rocketBootsSFX.currentTime = 0;
         rocketBootsSFX.play().catch(err => console.log("Erro ao iniciar som da bota:", err));
@@ -127,8 +138,6 @@ export function playCarrierPickupSFX() {
     pickupSFX.play().catch(err => console.log("Erro ao reproduzir coleta do carrier SFX:", err));
 }
 
-// === VOZES DE DANO E MORTE DO PLAYER ===
-
 const playerHurtVoices = [
     'assets/sfx/player_hurt1_sfx.opus',
     'assets/sfx/player_hurt2_sfx.opus',
@@ -143,10 +152,10 @@ const playerDeathVoices = [
 ];
 
 export function playPlayerHurtSFX() {
-    if (currentSFXVolume <= 0) return; // Não inicializa áudio se o slider estiver zerado
+    if (currentSFXVolume <= 0) return; 
     const randomHurtSrc = playerHurtVoices[Math.floor(Math.random() * playerHurtVoices.length)];
     const hurtSFX = new Audio(randomHurtSrc);
-    hurtSFX.volume = currentSFXVolume; // Sincronizado com as configurações de opções
+    hurtSFX.volume = currentSFXVolume; 
     hurtSFX.play().catch(err => console.log("Erro ao reproduzir voz de dano SFX:", err));
 }
 

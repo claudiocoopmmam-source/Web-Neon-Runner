@@ -86,11 +86,26 @@ for (let i = 1; i <= numFlyerFrames; i++) {
     flyerFrames.push(img);
 }
 
-// Sprite de Morte do Player
-export const deathSprite = new Image();
-deathSprite.src = 'assets/player_death.webp';
-export let deathAssetLoaded = false;
-deathSprite.onload = () => { deathAssetLoaded = true; };
+// Carregamento de frames de animação de Morte do Player 
+export const deathFrames = [];
+export const numDeathFrames = 4;
+export let deathAssetsLoaded = 0;
+for (let i = 1; i <= numDeathFrames; i++) {
+    const img = new Image();
+    img.src = `assets/player_death${i}.webp`;
+    img.onload = () => { deathAssetsLoaded++; };
+    deathFrames.push(img);
+}
+// N Carregamento de frames de partículas de explosão dos inimigos 
+export const explosionFrames = [];
+export const numExplosionFrames = 4;
+export let explosionAssetsLoaded = 0;
+for (let i = 1; i <= numExplosionFrames; i++) {
+    const img = new Image();
+    img.src = `assets/enemy_explosion${i}.webp`;
+    img.onload = () => { explosionAssetsLoaded++; };
+    explosionFrames.push(img);
+}
 
 // Objeto de Estado Global do Player - Totalmente Proporcional (320x500)
 export const player = {
