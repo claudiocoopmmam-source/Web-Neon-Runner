@@ -30,7 +30,7 @@
                 <label>MÚSICA (BGM)</label>
                 <div class="slider-container">
                     <img id="icon-bgm" src="assets/ui/sound_on.webp" alt="Música">
-                    <input type="range" id="slider-bgm" min="0" max="1" step="0.05" value="0.15">
+                    <input type="range" id="slider-bgm" min="0" max="1" step="0.05" value="0.50">
                 </div>
             </div>
 
@@ -79,11 +79,195 @@
                 </div>
             </div>
 
-            <div id="controls-tip">
+            <div id=\"controls-tip\">
                 [W / Espaço / ↑] Pula (Aperte 3x e segure para VOAR)<br>
                 [D / X / → / Clique] Ataque Melee | [P] Pausa
             </div>
         </div>
-    </div> <script type="module" src="game.js"></script>
+    </div> <div id="changelog-container">
+        <div class="changelog-header">
+            <h2>🚀 Neon Runner v0.6.5.1 - Stable</h2>
+            <span class="badge-stable">STABLE RELEASE</span>
+        </div>
+        
+        <div class="changelog-intro">
+            <strong>⚡ Grande Atualização: Sistema Overcharge</strong><br>
+            A principal novidade desta versão é a chegada do Overcharge, um modo especial de combate e movimentação que recompensa jogadores agressivos e habilidosos.
+        </div>
+
+        <div class="changelog-section">
+            <h3>🔹 Novo Sistema Overcharge</h3>
+            <ul>
+                <li><strong>Barra de Energia:</strong> Adicionado o sistema de gerenciamento da barra de Overcharge.</li>
+                <li><strong>Mecânica de Carga:</strong> A barra é alimentada e carregada progressivamente ao eliminar inimigos.</li>
+                <li><strong>Cap Máximo Rígido:</strong> Limite máximo da barra fixado em 15 pontos.</li>
+                <li><strong>Aumento de Ganho:</strong> Energia obtida por abate aumentada de 1.5 para 1.8 pontos.</li>
+                <li><strong>Golpes Ambientais:</strong> Paredes destruídas por impactos de inimigos agora concedem 0.5 ponto de Overcharge.</li>
+                <li><strong>Penalidade por Dano:</strong> A barra perde 1 ponto imediatamente sempre que você sofrer dano.</li>
+                <li><strong>Gerenciamento de Cooldown:</strong> Adicionado o estado de resfriamento para controle pós-uso.</li>
+                <li><strong>Drenagem Gradual:</strong> A barra agora drena e esvazia de forma contínua e visual enquanto o Overcharge estiver ativo.</li>
+                <li><strong>Efeito de Cooldown:</strong> Adicionada uma barra com pulso azul neon constante durante o tempo de resfriamento.</li>
+                <li><strong>Sinalização de Recarga:</strong> Adicionado efeito visual intermitente de piscar na barra durante o resfriamento.</li>
+            </ul>
+        </div>
+
+        <div class="changelog-section">
+            <h3>🔥 Ativação do Overcharge</h3>
+            <ul>
+                <li><strong>Efeito de Entrada:</strong> Ao encher completamente a barra, o ambiente e o jogo entram em um efeito temporário de câmera lenta.</li>
+                <li><strong>Zoom de Carga:</strong> Adicionado um efeito de zoom cinematográfico suave focado no personagem ao completar 100% da energia.</li>
+                <li><strong>Prompt de Comando:</strong> Novo prompt visual indicando a tecla <strong>[F]</strong> para sinalizar que o modo está pronto para ser descarregado.</li>
+                <li><strong>Comunicação Persistente:</strong> O aviso do prompt permanece visível na tela até que o jogador ative o modo ou perca a oportunidade ao ser atingido.</li>
+            </ul>
+        </div>
+
+        <div class="changelog-section">
+            <h3>⚡ Durante o Overcharge Ativo</h3>
+            <ul>
+                <li><strong>Multiplicador Máximo:</strong> O multiplicador de pontos fica completamente travado na potência de 5x.</li>
+                <li><strong>Aceleração do Ritmo:</strong> Velocidade global efetiva e scroll do cenário aumentados em 80%.</li>
+                <li><strong>Atropelo Imparável:</strong> Todos os inimigos comuns colididos são destruídos instantaneamente no impacto.</li>
+                <li><strong>Imunidade Defensiva:</strong> Projéteis e tiros oponentes deixam de causar qualquer tipo de dano ao jogador.</li>
+                <li><strong>Física de Voo Livre Total:</strong> Movimentação completamente reformulada em todas as direções:
+                    <ul>
+                        <li>Gravidade completamente zerada.</li>
+                        <li>Colisão física com plataformas desabilitada.</li>
+                        <li>Controles verticais dedicados utilizando as teclas <code>W</code> / <code>S</code> ou as setas <code>↑</code> / <code>↓</code>.</li>
+                    </ul>
+                </li>
+                <li><strong>Animação Dedicada:</strong> Nova animação exclusiva de voo utilizando um conjunto de 4 sprites inéditos.</li>
+                <li><strong>Speed Lines:</strong> Efeito visual de linhas horizontais de velocidade neon desenhadas nas extremidades durante todo o modo.</li>
+                <li><strong>Ajuste do Combo:</strong> Indicador gráfico do multiplicador ampliado e reposicionado para melhor leitura na correria.</li>
+                <li><strong>Letreiro de Identificação:</strong> Texto estilizado "OVERCHARGE" exibido diretamente na barra inferior durante a ativação.</li>
+            </ul>
+        </div>
+
+        <div class="changelog-section">
+            <h3>🛡️ Encerramento do Overcharge</h3>
+            <ul>
+                <li><strong>Fim da Punição Súbita:</strong> Removida por completo a mecânica de morte automática ao término do tempo do modo.</li>
+                <li><strong>Correção de Bugs:</strong> Corrigido o problema técnico no encerramento que causava mortes indevidas ao sair do estado.</li>
+                <li><strong>Transição Suave:</strong> Efeito de câmera lenta de recuperação aplicado ao final do tempo para o jogador retomar o controle.</li>
+                <li><strong>Lançamento Estético:</strong> Um impulso vertical visual para cima é adicionado no instante do término.</li>
+                <li><strong>Janela de Segurança:</strong> Adicionada uma janela temporária de invulnerabilidade para garantir uma transição sem punições.</li>
+                <li><strong>Fim do Piscar Vermelho:</strong> Removido o efeito visual piscante de dano ao encerrar o modo que confundia os testers.</li>
+            </ul>
+        </div>
+
+        <div class="changelog-section">
+            <h3>⚖️ Sistema de Risco e Recompensa (Bônus Passivos)</h3>
+            <p class="section-desc">O Overcharge agora oferece benefícios passivos de atributos muito importantes mesmo antes de ser ativado, escalando com a quantidade de energia guardada:</p>
+            <ul>
+                <li><strong>Regeneração Avançada:</strong> A taxa de regeneração de combustível aumenta conforme a barra é preenchida.</li>
+                <li><strong>Ataques Velozes:</strong> O tempo de recarga (cooldown) dos seus ataques melee diminui conforme a barra acumula carga.</li>
+                <li><strong>Eficiência de Voo:</strong> O consumo de combustível ao voar normalmente é reduzido conforme a barra é carregada.</li>
+                <li><strong>Na Carga Máxima (100%):</strong> Regeneração de combustível aumentada em até 100%, cooldown de ataques reduzido em até 50% e consumo de combustível reduzido em até 50%.</li>
+                <li><em>Dilema Estratégico:</em> Escolha entre manter a barra cheia para usufruir dos bônus passivos permanentes ou ativar o Overcharge para obter o poder extremo temporário do voo livre, consumindo a energia.</li>
+            </ul>
+        </div>
+
+        <div class="changelog-section">
+            <h3>🎵 Ajustes de Áudio e Trilhas</h3>
+            <p class="section-desc"><strong>Balanceamento de Volume:</strong></p>
+            <ul>
+                <li>Volume inicial de todas as músicas do jogo e menus equalizado em 50% (0.50).</li>
+                <li>O volume das músicas agora corresponde perfeitamente ao volume padrão inicial dos efeitos sonoros (SFX).</li>
+                <li>Controle deslizante (slider) de música na interface atualizado para iniciar na marca de 50%.</li>
+            </ul>
+            <p class="section-desc"><strong>Sistema de Música Overcharge:</strong></p>
+            <ul>
+                <li>A trilha sonora antiga <em>"Runic Circuit"</em> foi completamente arquivada.</li>
+                <li>O gameplay agora utiliza exclusivamente o gerenciamento duplo de: <code>Neon_Invasion_BGM.opus</code> e <code>Neon_Invasion_overcharged_BGM.opus</code>.</li>
+                <li>Ambas as trilhas permanecem rodando e sincronizadas em background durante toda a partida.</li>
+                <li>Transição instantânea através de um sistema de crossfade limpo que preserva o tempo exato (currentTime), eliminando atrasos.</li>
+                <li>A troca dinâmica de trilha respeita com precisão o estado da máquina de estados do Overcharge.</li>
+                <li>Sistema centralizado de volume atualizado para aplicar as mudanças de ganho nas duas versões da música simultaneamente.</li>
+            </ul>
+            <p class="section-desc"><strong>Correções de Áudio:</strong></p>
+            <ul>
+                <li>Corrigido o crash de código gerado por referência ausente ao chamar o método de alternância de áudio.</li>
+                <li>Corrigido o travamento visual severo que travava a renderização ao ativar o Overcharge.</li>
+                <li>Corrigida a interrupção abrupta do loop principal do jogo causada por falha de execução de scripts de som.</li>
+                <li>Corrigido o problema crônico que impedia a troca de música na ativação do Overcharge.</li>
+            </ul>
+        </div>
+
+        <div class="changelog-section">
+            <h3>⛽ Combustível e Progressão</h3>
+            <ul>
+                <li><strong>Carrier de Fuel:</strong> O robô drone de suprimentos de combustível agora restaura **100% do seu tanque** (recuperação ampliada de 50% para 100%).</li>
+                <li><strong>Duração Escalável por Combo:</strong> O tempo útil do Overcharge ativo agora depende do multiplicador de combo acumulado antes de ligar o poder.</li>
+                <li>Multiplicadores maiores estendem a janela de fúria (exemplo: ativar o modo com multiplicador 2x resulta em aproximadamente 10 a 12 segundos de duração total).</li>
+            </ul>
+        </div>
+
+        <div class="changelog-section">
+            <h3>🎨 Interface Geral e Efeitos Visuais</h3>
+            <p class="section-desc"><strong>Barra Overcharge:</strong></p>
+            <ul>
+                <li>Espessura vertical expandida de 6px para **14px** para melhor leitura em todas as resoluções de tela.</li>
+                <li>Alinhamento do texto indicador "RESFRIANDO" centralizado perfeitamente na nova altura da barra.</li>
+                <li>Comportamento do pulso neon aprimorado durante os estados de prontidão (Ready) e uso ativo (Active).</li>
+                <li>Borda inferior recebeu acabamento premium contendo gradientes de cor, borda metálica e iluminação neon azul.</li>
+            </ul>
+            <p class="section-desc"><strong>Efeitos Visuais de Câmera:</strong></p>
+            <ul>
+                <li>Efeito de câmera lenta ao ativar o poder intensificado e mais dramático (ajustado de 0.08–0.35 para 0.04–0.25).</li>
+                <li>Zoom de ativação da câmera ampliado de 1.08x para **1.18x** para maior impacto visual.</li>
+                <li>Zoom de prontidão de até 1.08x aplicado de forma suave com efeito de recuo ao carregar completamente a energia.</li>
+            </ul>
+        </div>
+
+        <div class="changelog-section">
+            <h3>🎮 Jogabilidade, Combate e Colisões</h3>
+            <p class="section-desc"><strong>Ajustes de Combate:</strong></p>
+            <ul>
+                <li>O multiplicador de pontos permanece rigidamente travado em 5x durante todo o voo especial.</li>
+                <li>As eliminações continuam sendo registradas para o placar, mas sem inflar o multiplicador além do limite técnico de 5x.</li>
+                <li>Corrigida a falha de consistência que permitia atingir multiplicadores indesejados como 5.2x durante o modo.</li>
+            </ul>
+            <p class="section-desc"><strong>Regras de Colisão:</strong></p>
+            <ul>
+                <li>Colisões contra inimigos comuns durante o voo especial desintegram o alvo na hora.</li>
+                <li>Paredes removidas por impacto durante o Overcharge não contam indevidamente como abates (kills) nas estatísticas.</li>
+                <li>Rebatimento de projéteis refletidos por ataques físicos mantidos com detecção perfeita e redirecionamento automático.</li>
+            </ul>
+            <p class="section-desc"><strong>Arquitetura Interna:</strong></p>
+            <ul>
+                <li>Implementação e controle contínuo dos quatro estados do sistema: <code>Idle</code>, <code>Ready</code>, <code>Active</code> e <code>Cooldown</code>.</li>
+                <li>Ativação mapeada de forma dupla: clique na tecla de atalho **F** ou clique direto com o mouse na área da barra inferior.</li>
+                <li>Varredura e checagem de estado executadas nativamente a cada frame pelo gerenciador principal.</li>
+            </ul>
+        </div>
+
+        <div class="changelog-section">
+            <h3>📖 Novas Dicas de Carrossel</h3>
+            <ul>
+                <li>Adicionadas novas dicas explicando de forma clara a mecânica de sinergia entre a carga da barra, taxa de regeneração e o tempo de recarga dos seus golpes.</li>
+                <li>Adicionadas dicas de carregamento detalhando a escolha estratégica de reter os bônus passivos ou queimar a energia no modo ativo.</li>
+                <li>Atualizadas as informações de tela referentes ao Carrier de combustível recuperando a totalidade do tanque.</li>
+            </ul>
+        </div>
+
+        <div class="changelog-section">
+            <h3>🛠 Correções de Bugs & Estabilidade Geral</h3>
+            <ul>
+                <li>Corrigido o crash de ReferenceError crítico no script de alternância de áudio.</li>
+                <li>Corrigido o congelamento visual de frames causado por interrupções e quebras no loop do jogo.</li>
+                <li>Corrigida a falha na troca de áudio que impedia a música Overcharge de tocar.</li>
+                <li>Corrigido o bug de multiplicação matemática que inflava o combo acima de 5x.</li>
+                <li>Corrigida a falha que aplicava mortes indevidas ao jogador imediatamente após sair do Overcharge.</li>
+                <li>Removidos por completo temporizadores assíncronos que continuavam rodando e quebrando o jogo após o Game Over ou restarts rápidos.</li>
+                <li>Refatorado o gerenciamento interno de estados do sistema para garantir performance estável a 60 FPS.</li>
+            </ul>
+        </div>
+
+        <div class="changelog-footer">
+            <h3>📋 Resumo da Versão Stable</h3>
+            <p>A versão 0.6.5.1 Stable introduz oficialmente o sistema Overcharge, adicionando um novo ciclo completo de risco e recompensa baseado em agressividade, gerenciamento de recursos e tomada de decisão em frações de segundo. O jogador pode optar por manter a barra cheia para aproveitar bônus passivos permanentes ou consumi-la para entrar em um estado temporário de poder extremo, acompanhado de novos efeitos visuais, trilhas dinâmicas em crossfade, melhorias drásticas de interface e dezenas de correções de estabilidade de código.</p>
+        </div>
+    </div>
+
+    <script type="module" src="gamemanager.js"></script>
 </body>
 </html>
