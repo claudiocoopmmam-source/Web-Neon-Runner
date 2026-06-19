@@ -100,33 +100,42 @@
     </div>
     <div id="changelog-container" class="removal-candidate" data-removal-candidate="true">
         <div class="changelog-header">
-            <h2>🚀 Neon Runner v0.6.5.1 - Stable</h2>
+            <h2>🚀 Neon Runner v0.6.6.1 - Stable</h2>
             <div class="changelog-badges">
                 <span class="badge-stable">STABLE RELEASE</span>
-                <span class="badge-removal">PENDENTE DE REMOÇÃO</span>
             </div>
         </div>
         
         <div class="changelog-intro">
-            <strong>⚡ Grande Atualização: Sistema Overcharge</strong><br>
-            A principal novidade desta versão é a chegada do Overcharge, um modo especial de combate e movimentação que recompensa jogadores agressivos e habilidosos.
+            <strong>⚡ Atualização de Cenários e Combate (v0.6.6.1)</strong><br>
+            A principal novidade desta versão é a chegada do sistema completo de Parallax, ataques à distância e limites aprimorados de câmera, além de correções críticas de renderização contínua.
         </div>
 
         <div class="changelog-section">
-            <h3>🔹 Novo Sistema Overcharge</h3>
+            <h3>🔹 Novos Sistemas Adicionados</h3>
+            <ul>
+                <li><strong>Parallax Completo:</strong> Adicionadas camadas de Foreground e Background com sistema de rolagem infinita contínua (sem snapping).</li>
+                <li><strong>Ataque à Distância:</strong> Introduzida a mecânica de Ranged Attack (tiro), expandindo o leque estratégico de combate.</li>
+                <li><strong>Limites de Câmera:</strong> A câmera agora possui limite vertical (clamp) em relação ao nível do chão, impedindo que o jogador enxergue o "vazio" abaixo das artes de cenário caso caia.</li>
+            </ul>
+        </div>
+
+        <div class="changelog-section">
+            <h3>🛠 Melhorias de Código e Correções (v0.6.6.1)</h3>
+            <ul>
+                <li><strong>Encapsulamento do Parallax:</strong> O estado e os cálculos de rolagem foram completamente encapsulados dentro de <code>parallax.js</code>.</li>
+                <li><strong>Correção do Bug de Snapping:</strong> O cenário agora acumula o valor de scroll por frame, eliminando engasgos severos que ocorriam quando a velocidade do jogo (gameSpeed) ou o Overcharge aumentavam.</li>
+            </ul>
+        </div>
+
+        <div class="changelog-section">
+            <h3>🔹 Histórico Recente (v0.6.5.1 - Overcharge)</h3>
             <ul>
                 <li><strong>Barra de Energia:</strong> Adicionado o sistema de gerenciamento da barra de Overcharge.</li>
                 <li><strong>Mecânica de Carga:</strong> A barra é alimentada e carregada progressivamente ao eliminar inimigos.</li>
-                <li><strong>Cap Máximo Rígido:</strong> Limite máximo da barra fixado em 15 pontos.</li>
-                <li><strong>Aumento de Ganho:</strong> Energia obtida por abate aumentada de 1.5 para 1.8 pontos.</li>
-                <li><strong>Golpes Ambientais:</strong> Paredes destruídas por impactos de inimigos agora concedem 0.5 ponto de Overcharge.</li>
-                <li><strong>Penalidade por Dano:</strong> A barra perde 1 ponto imediatamente sempre que você sofrer dano.</li>
                 <li><strong>Gerenciamento de Cooldown:</strong> Adicionado o estado de resfriamento para controle pós-uso.</li>
-                <li><strong>Drenagem Gradual:</strong> A barra agora drena e esvazia de forma contínua e visual enquanto o Overcharge estiver ativo.</li>
-                <li><strong>Efeito de Cooldown:</strong> Adicionada uma barra com pulso azul neon constante durante o tempo de resfriamento.</li>
-                <li><strong>Sinalização de Recarga:</strong> Adicionado efeito visual intermitente de piscar na barra durante o resfriamento.</li>
             </ul>
-        </div>
+        </div>re
 
         <div class="changelog-section">
             <h3>🔥 Ativação do Overcharge</h3>
@@ -281,7 +290,7 @@
 
         <div class="changelog-footer">
             <h3>📋 Resumo da Versão Stable</h3>
-            <p>A versão 0.6.5.1 Stable introduz oficialmente o sistema Overcharge, adicionando um novo ciclo completo de risco e recompensa baseado em agressividade, gerenciamento de recursos e tomada de decisão em frações de segundo. O jogador pode optar por manter a barra cheia para aproveitar bônus passivos permanentes ou consumi-la para entrar em um estado temporário de poder extremo, acompanhado de novos efeitos visuais, trilhas dinâmicas em crossfade, melhorias drásticas de interface e dezenas de correções de estabilidade de código.</p>
+            <p>A versão v0.6.6.1 adiciona profundidade imersiva ao jogo através de um sistema de Parallax dinâmico perfeitamente suave, além de refinar a jogabilidade tática com o Ranged Attack e garantir uma apresentação visual impecável com as novas travas de câmera no chão.</p>
         </div>
     </div>
 

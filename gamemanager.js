@@ -29,6 +29,7 @@ import {
     OVERCHARGE_SPEED_MULTIPLIER,
     OVERCHARGE_READY_SLOWMO_DURATION,
 } from './overcharge.js';
+import { updateParallax, resetParallax } from './parallax.js';
 import {
     startRocketBootsSFX, stopRocketBootsSFX,
     playAttackSFX, playExplosionSFX, playCarrierPickupSFX,
@@ -99,6 +100,7 @@ export function init() {
     lastTime             = performance.now();
 
     resetPlayer();
+    resetParallax();
     stopRocketBootsSFX();
 
     platforms        = [
@@ -291,6 +293,10 @@ function loop(currentTime) {
     const effectiveGameSpeed = player.overchargeState === 'active'
         ? gameSpeed * OVERCHARGE_SPEED_MULTIPLIER
         : gameSpeed;
+
+    if (!isPaused && !isFirstStart) {
+        updateParallax(effectiveGameSpeed);
+    }
 
     // Render
     draw({

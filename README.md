@@ -2,7 +2,7 @@
 
 ### 🎮 Jogar Agora
 
-👉 **Versão Atual (v0.4.2):**
+👉 **Versão Atual (v0.6.6.1):**
 https://licandarker.github.io/Web-Neon-Runner/
 
 ---

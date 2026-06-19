@@ -57,7 +57,6 @@ export function draw({
     ctx.save();
 
     let zoomed = false;
-    const parallaxScroll = globalTimer * gameSpeed;
     const playerCenterY = player.y + player.height / 2;
     const verticalDistance = canvas.height * 0.42 - playerCenterY;
     const cameraDriftY = Math.max(
@@ -110,7 +109,7 @@ export function draw({
 
     ctx.translate(0, cameraDriftY);
 
-    drawParallaxBackground(ctx, canvas, parallaxScroll);
+    drawParallaxBackground(ctx, canvas);
     _drawPlatforms(ctx, platforms);
     _drawProjectiles(ctx, projectiles, globalTimer);
     _drawRangedProjectiles(ctx, rangedProjectiles);
@@ -121,7 +120,7 @@ export function draw({
     }
     _drawPlayer(ctx, player, isGameOver, isDeathSequence, deathSequenceEndTime, globalTimer);
     _drawComboMultiplier(ctx, player, isFirstStart, isGameOver);
-    drawParallaxForeground(ctx, canvas, parallaxScroll);
+    drawParallaxForeground(ctx, canvas);
 
     if (zoomed) ctx.restore();
     ctx.restore();
