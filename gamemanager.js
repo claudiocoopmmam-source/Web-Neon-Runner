@@ -3,13 +3,32 @@
 // Mantém o estado global, o loop de jogo e coordena todos os módulos.
 // É o único arquivo que importa de todos os outros.
 
-import { player, resetPlayer, tryAttack, takeDamage, registerKill, numAttackFrames } from './player.js';
+import {
+    player, resetPlayer, tryAttack, takeDamage, registerKill, numAttackFrames,
+    addRangedChargeProgress, addRangedCharges, spendRangedCharge,
+} from './player.js';
 import { updatePlayerTimers }                                                          from './player.js';
 import { applyPlayerPhysics, applyDeathPhysics }                                      from './physics.js';
-import { checkCollision, updatePlatformsState, createNewPlatform, generateEnemy }     from './entities.js';
+import { updatePlatformsState, createNewPlatform, generateEnemy }                     from './entities.js';
 import { updateEnemies, updateProjectiles, updateExplosions }                         from './enemy.js';
 import { draw }                                                                        from './renderer.js';
 import { updateUI, initUI, showPauseScreen, hidePauseScreen, showGameOverScreen, maybeUpdateHighscore } from './ui.js';
+import { getAssetProgress, waitForAssets }                                             from './assetmanager.js';
+import { WORLD_BOTTOM_Y }                                                               from './world.js';
+import {
+    createRangedProjectile,
+    getRangedAttackDecision,
+    updateRangedProjectiles,
+} from './rangedattack.js';
+import {
+    createOverchargeRuntime,
+    addOverchargePoints,
+    addOverchargeKill,
+    tryActivateOvercharge,
+    updateOvercharge,
+    OVERCHARGE_SPEED_MULTIPLIER,
+    OVERCHARGE_READY_SLOWMO_DURATION,
+} from './overcharge.js';
 import {
     startRocketBootsSFX, stopRocketBootsSFX,
     playAttackSFX, playExplosionSFX, playCarrierPickupSFX,
@@ -23,10 +42,6 @@ const DEATH_SEQUENCE_DURATION = 2500; // ms
 const SPEED_INCREMENT_INTERVAL = 500; // globalTimer ticks
 const SPEED_INCREMENT_AMOUNT   = 0.5;
 const ENEMY_SPAWN_CHANCE        = 0.30; // prob de NÃO spawnar
-const OVERCHARGE_DURATION       = 6.0;  // segundos
-const OVERCHARGE_COOLDOWN       = 5.0;  // segundos
-const OVERCHARGE_KILL_GAIN      = 1.8;
-const OVERCHARGE_SPEED_MULTIPLIER = 1.8; // acelera o scroll durante o overcharge
 
 // --- CANVAS ---
 const canvas = document.getElementById('gameCanvas');
@@ -44,14 +59,13 @@ let isFirstStart         = true;
 let globalTimer          = 0;
 let isDeathSequence      = false;
 let deathSequenceEndTime = 0;
-let isOverchargeReady    = false;   // slow-mo ativo ao encher a barra
-let overchargeReadyStart   = 0;     // timestamp do início do slow-mo
-const OVERCHARGE_READY_SLOWMO_DURATION = 2000; // ms
+const overchargeRuntime  = createOverchargeRuntime();
 
 // --- LISTAS DE ENTIDADES ---
 let platforms        = [];
 let entities         = [];
 let projectiles      = [];
+let rangedProjectiles = [];
 let activeExplosions = [];
 
 // --- INPUT ---
@@ -64,6 +78,11 @@ const TARGET_FPS = 60;
 const FRAME_TIME = 1000 / TARGET_FPS;
 let animFrameId  = null;
 
+// --- LOADING UI ---
+const loadingScreen = document.getElementById('loading-screen');
+const loadingBarFill = document.getElementById('loading-bar-fill');
+const loadingStatus = document.getElementById('loading-status');
+
 // ============================================================
 // INICIALIZAÇÃO
 // ============================================================
@@ -72,26 +91,26 @@ export function init() {
     score                = 0;
     lives                = 3;
     isGameOver           = false;
+    isPaused             = false;
     isDeathSequence      = false;
-    isOverchargeReady      = false;
-    overchargeReadyStart   = 0;
+    overchargeRuntime.isReady = false;
+    overchargeRuntime.readyStart = 0;
     globalTimer          = 0;
     lastTime             = performance.now();
 
     resetPlayer();
+    stopRocketBootsSFX();
 
     platforms        = [
-        { x: 0,       y: UH * 75, width: UW * 62.5, height: UH * 25 },
-        { x: UW * 75, y: UH * 65, width: UW * 50,   height: UH * 35 },
+        { x: 0,       y: UH * 75, width: UW * 62.5, height: WORLD_BOTTOM_Y - (UH * 75) },
+        { x: UW * 75, y: UH * 65, width: UW * 50,   height: WORLD_BOTTOM_Y - (UH * 65) },
     ];
     entities         = [];
     projectiles      = [];
+    rangedProjectiles = [];
     activeExplosions = [];
 
     updateUI(score, lives);
-
-    if (animFrameId !== null) cancelAnimationFrame(animFrameId);
-    animFrameId = requestAnimationFrame((ts) => { lastTime = ts; loop(ts); });
 }
 
 export function setFirstStart(val) { isFirstStart = val; }
@@ -104,10 +123,11 @@ export function togglePause(forceState) {
 // INPUT
 // ============================================================
 window.addEventListener('keydown', (e) => {
+    const blocksScroll = ['Space', 'KeyW', 'KeyS', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.code);
+    if (blocksScroll) e.preventDefault();
     if (isFirstStart || isGameOver) return;
 
     if (['Space', 'KeyW', 'ArrowUp'].includes(e.code)) {
-        e.preventDefault();
         if (player.overchargeState === 'active') {
             keys.up = true;
         } else if (player.isGrounded || player.coyoteTimer > 0) {
@@ -126,13 +146,18 @@ window.addEventListener('keydown', (e) => {
     }
 
     if (['KeyS', 'ArrowDown'].includes(e.code) && player.overchargeState === 'active') {
-        e.preventDefault();
         keys.down = true;
     }
 
     if (['KeyD', 'KeyX', 'ArrowRight'].includes(e.code)) _triggerAttack();
     if (e.code === 'KeyP' && !isGameOver) togglePause();
-    if (e.code === 'KeyF') _tryActivateOvercharge();
+    if (e.code === 'KeyF') {
+        if (tryActivateOvercharge(player, overchargeRuntime)) {
+            if (player.isFlying) stopRocketBootsSFX();
+            player.isFlying = false;
+            setOverchargeAudio(true);
+        }
+    }
 });
 
 window.addEventListener('keyup', (e) => {
@@ -149,7 +174,11 @@ canvas.addEventListener('mousedown', (e) => {
     if (isFirstStart || isGameOver) return;
     // Clique na barra de overcharge (bottom strip, y > 555)
     if (e.button === 0 && e.offsetY > 555) {
-        _tryActivateOvercharge();
+        if (tryActivateOvercharge(player, overchargeRuntime)) {
+            if (player.isFlying) stopRocketBootsSFX();
+            player.isFlying = false;
+            setOverchargeAudio(true);
+        }
         return;
     }
     if (e.button === 0) _triggerAttack();
@@ -157,39 +186,18 @@ canvas.addEventListener('mousedown', (e) => {
 
 function _triggerAttack() {
     if (isGameOver || isPaused || isFirstStart) return;
-    const fired = tryAttack(player);
-    if (fired) playAttackSFX();
-}
 
-function _addOverchargePoints(amount) {
-    if (player.overchargeState !== 'idle') return;
-    player.overchargeBar = Math.min(player.overchargeMax, player.overchargeBar + amount);
-    if (player.overchargeBar >= player.overchargeMax) {
-        player.overchargeBar   = player.overchargeMax; // hard cap
-        player.overchargeState = 'ready';
-        isOverchargeReady    = true;
-        overchargeReadyStart = performance.now();
+    const decision = getRangedAttackDecision({
+        player,
+        entities,
+        canvasWidth: canvas.width,
+    });
+    const mode = decision.shouldUseRanged ? 'ranged' : 'melee';
+    const fired = tryAttack(player, mode);
+    if (fired && mode === 'ranged' && spendRangedCharge(player)) {
+        rangedProjectiles.push(createRangedProjectile(player));
     }
-}
-
-function _addOverchargeKill() {
-    _addOverchargePoints(OVERCHARGE_KILL_GAIN);
-}
-
-function _tryActivateOvercharge() {
-    if (isGameOver || isPaused || isFirstStart) return;
-    if (player.overchargeState !== 'ready') return;
-    player.overchargeState           = 'active';
-    player.overchargePrevMultiplier  = player.comboMultiplier;
-    // Duração escala com o multiplicador no momento da ativação
-    player.overchargeTotalDuration   = OVERCHARGE_DURATION * player.comboMultiplier; // <-- ADDED
-    player.overchargeTimer           = player.overchargeTotalDuration;
-    isOverchargeReady                = false;
-    player.comboMultiplier           = 5.0;
-    player.invulnerableTimer         = 9999; // invulnerável durante overcharge
-    if (player.isFlying) stopRocketBootsSFX();
-    player.isFlying = false;
-    setOverchargeAudio(true); // crossfade para a trilha agressiva
+    if (fired) playAttackSFX();
 }
 
 // ============================================================
@@ -219,15 +227,15 @@ function loop(currentTime) {
         }
 
         // Slow-motion ao encher/terminar a barra de overcharge
-        if (isOverchargeReady) {
-            const elapsed = performance.now() - overchargeReadyStart;
+        if (overchargeRuntime.isReady) {
+            const elapsed = performance.now() - overchargeRuntime.readyStart;
             if (elapsed < OVERCHARGE_READY_SLOWMO_DURATION) {
                 const progress     = elapsed / OVERCHARGE_READY_SLOWMO_DURATION;
                 const easeIn       = Math.pow(progress, 0.4);
                 const slowMoFactor = 0.04 + (0.25 - 0.04) * easeIn; // mais pesado
                 dt *= slowMoFactor;
             } else {
-                isOverchargeReady = false;
+                overchargeRuntime.isReady = false;
             }
         }
 
@@ -268,6 +276,14 @@ function loop(currentTime) {
         });
         _processProjEvents(projEvents);
 
+        const rangedEvents = updateRangedProjectiles({
+            rangedProjectiles,
+            entities,
+            dt,
+            canvasWidth: canvas.width,
+        });
+        _processRangedEvents(rangedEvents);
+
         // Explosões visuais
         updateExplosions(activeExplosions, effectiveGameSpeed, dt);
     }
@@ -278,9 +294,11 @@ function loop(currentTime) {
 
     // Render
     draw({
-        ctx, canvas, player, platforms, entities, projectiles, activeExplosions,
+        ctx, canvas, player, platforms, entities, projectiles, rangedProjectiles, activeExplosions,
         globalTimer, isGameOver, isFirstStart, isDeathSequence, deathSequenceEndTime,
-        isOverchargeReady, overchargeReadyStart, gameSpeed: effectiveGameSpeed
+        isOverchargeReady: overchargeRuntime.isReady,
+        overchargeReadyStart: overchargeRuntime.readyStart,
+        gameSpeed: effectiveGameSpeed
     });
 
     // Pause UI
@@ -323,47 +341,12 @@ function _updateGame() {
     if (globalTimer % SPEED_INCREMENT_INTERVAL === 0) gameSpeed += SPEED_INCREMENT_AMOUNT;
 
     // Overcharge state machine
-    _updateOvercharge();
+    const overchargeEvents = updateOvercharge(player, overchargeRuntime, dt, performance.now());
+    if (overchargeEvents.endedActive) {
+        setOverchargeAudio(false);
+    }
 
     updateUI(score, lives);
-}
-
-function _updateOvercharge() {
-    const p   = player;
-    const sec = dt / 60; // converte ticks para segundos
-
-    if (p.overchargeState === 'active') {
-        p.overchargeTimer -= sec;
-        
-        // Drenagem sincronizada com a duração efetiva
-        const drainRate = p.overchargeMax / p.overchargeTotalDuration;
-        p.overchargeBar = Math.max(0, p.overchargeBar - drainRate * sec);
-
-        if (p.overchargeTimer <= 0) {
-            // Fim do overcharge — slow-mo de saída + impulso pra cima (sem dano)
-            p.overchargeState    = 'cooldown';
-            p.overchargeTimer    = OVERCHARGE_COOLDOWN;
-            p.overchargeBar      = 0;
-            p.comboMultiplier    = p.overchargePrevMultiplier;
-            p.invulnerableTimer  = 90; // proteção breve enquanto retoma o controle
-            p.isOverchargeRecovering = true; // Flag para não piscar a tela como dano
-            p.fuel               = p.maxFuel;
-            p.isFlying           = false;
-            // Impulso para cima (força do double jump) — apenas estético
-            p.vy                 = p.doubleJumpForce;
-            p.isGrounded         = false;
-            // Slow-mo de saída (reutiliza o sistema de overcharge ready)
-            isOverchargeReady    = true;
-            overchargeReadyStart = performance.now();
-            setOverchargeAudio(false); // crossfade de volta para a trilha normal
-        }
-    } else if (p.overchargeState === 'cooldown') {
-        p.overchargeTimer -= sec;
-        if (p.overchargeTimer <= 0) {
-            p.overchargeState = 'idle';
-            p.overchargeTimer = 0;
-        }
-    }
 }
 
 // ============================================================
@@ -408,7 +391,13 @@ function _processEnemyEvents(ev) {
     if (ev.kills > 0) {
         for (let i = 0; i < ev.kills; i++) {
             registerKill(player);
-            _addOverchargeKill();
+            addOverchargeKill(player, overchargeRuntime);
+        }
+        if (ev.meleeKills > 0) {
+            addRangedChargeProgress(player, ev.meleeKills);
+        }
+        if (ev.overchargeKills > 0) {
+            addRangedCharges(player, ev.overchargeKills);
         }
         score += ev.scoreGain * player.comboMultiplier;
         playExplosionSFX();
@@ -419,7 +408,7 @@ function _processEnemyEvents(ev) {
     // Paredes atacadas: +0.5 por parede, com cap
     if (ev.wallHits) {
         for (let i = 0; i < ev.wallHits; i++) {
-            _addOverchargePoints(0.5);
+            addOverchargePoints(player, overchargeRuntime, 0.5);
         }
     }
 
@@ -445,7 +434,22 @@ function _processProjEvents(ev) {
     if (ev.kills > 0) {
         for (let i = 0; i < ev.kills; i++) {
             registerKill(player);
-            _addOverchargeKill();
+            addOverchargeKill(player, overchargeRuntime);
+        }
+        score += ev.scoreGain * player.comboMultiplier;
+        playExplosionSFX();
+    } else if (ev.scoreGain > 0) {
+        score += ev.scoreGain * player.comboMultiplier;
+    }
+
+    activeExplosions.push(...ev.newExplosions);
+}
+
+function _processRangedEvents(ev) {
+    if (ev.kills > 0) {
+        for (let i = 0; i < ev.kills; i++) {
+            registerKill(player);
+            addOverchargeKill(player, overchargeRuntime);
         }
         score += ev.scoreGain * player.comboMultiplier;
         playExplosionSFX();
@@ -460,6 +464,47 @@ function _processProjEvents(ev) {
 // BOOTSTRAP
 // ============================================================
 document.addEventListener('DOMContentLoaded', () => {
+    void boot();
+});
+
+function _updateLoadingUI() {
+    if (!loadingScreen || !loadingBarFill || !loadingStatus) return;
+    const progress = getAssetProgress();
+    const done = progress.loaded + progress.failed;
+    const total = Math.max(1, progress.total);
+    const pct = Math.min(100, Math.round((done / total) * 100));
+
+    loadingBarFill.style.width = `${pct}%`;
+    loadingStatus.textContent = progress.total > 0
+        ? `Carregando ${done}/${progress.total} assets`
+        : 'Preparando assets...';
+}
+
+function _hideLoadingScreen() {
+    if (!loadingScreen) return;
+    loadingScreen.classList.add('hidden');
+}
+
+function _startMainLoop() {
+    if (animFrameId !== null) cancelAnimationFrame(animFrameId);
+    lastTime = performance.now();
+    animFrameId = requestAnimationFrame(loop);
+}
+
+async function boot() {
+    _updateLoadingUI();
+
+    const refreshLoading = () => {
+        if (!loadingScreen || loadingScreen.classList.contains('hidden')) return;
+        _updateLoadingUI();
+        requestAnimationFrame(refreshLoading);
+    };
+
+    requestAnimationFrame(refreshLoading);
+    await waitForAssets();
+    _updateLoadingUI();
+    _hideLoadingScreen();
+
     initUI({
         onStartGame:     init,
         onRestartGame:   init,
@@ -468,5 +513,5 @@ document.addEventListener('DOMContentLoaded', () => {
         onSetFirstStart: setFirstStart,
     });
 
-    animFrameId = requestAnimationFrame((ts) => { lastTime = ts; loop(ts); });
-});
+    _startMainLoop();
+}

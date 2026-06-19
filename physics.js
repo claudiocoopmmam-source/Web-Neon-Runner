@@ -4,6 +4,7 @@
 // Recebe dados como parâmetros, devolve estado atualizado.
 
 import { numFlyFrames, numOverchargeFrames } from './player.js';
+import { WORLD_BOTTOM_Y } from './world.js';
 
 /**
  * Atualiza a posição e estado físico do player a cada frame.
@@ -106,4 +107,10 @@ export function applyPlayerPhysics(player, keys, globalTimer, dt, platforms) {
 export function applyDeathPhysics(player, dt) {
     player.vy += player.gravity * dt;
     player.y += player.vy * dt;
+
+    const groundY = WORLD_BOTTOM_Y - player.height;
+    if (player.y >= groundY) {
+        player.y = groundY;
+        player.vy = 0;
+    }
 }

@@ -6,6 +6,7 @@
 import {
     runFrames, runAssetsLoaded, numRunFrames,
     attackFrames, attackAssetsLoaded, numAttackFrames,
+    rangedAttackFrames, rangedAttackAssetsLoaded, numRangedAttackFrames,
     jumpSprite, jumpAssetLoaded,
     flyFrames, flyAssetsLoaded, numFlyFrames,
     deathFrames, deathAssetsLoaded, numDeathFrames,
@@ -23,6 +24,12 @@ import {
     explosionVariants, numExplosionFrames,
 } from './entities.js';
 
+import {
+    drawParallaxBackground,
+    drawParallaxForeground,
+} from './parallax.js';
+import { MAX_CAMERA_DRIFT_Y } from './world.js';
+
 const DEATH_SEQUENCE_DURATION = 2500;
 
 /**
@@ -35,6 +42,7 @@ export function draw({
     platforms,
     entities,
     projectiles,
+    rangedProjectiles = [],
     activeExplosions,
     globalTimer,
     isGameOver,
@@ -46,8 +54,16 @@ export function draw({
     gameSpeed = 5
 }) {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
+    ctx.save();
 
     let zoomed = false;
+    const parallaxScroll = globalTimer * gameSpeed;
+    const playerCenterY = player.y + player.height / 2;
+    const verticalDistance = canvas.height * 0.42 - playerCenterY;
+    const cameraDriftY = Math.max(
+        -MAX_CAMERA_DRIFT_Y,
+        Math.min(MAX_CAMERA_DRIFT_Y, verticalDistance * 0.055)
+    );
 
     // --- CÂMERA DE MORTE (ZOOM + SLOW-MO VISUAL) ---
     if (isDeathSequence) {
@@ -92,8 +108,12 @@ export function draw({
         );
     }
 
+    ctx.translate(0, cameraDriftY);
+
+    drawParallaxBackground(ctx, canvas, parallaxScroll);
     _drawPlatforms(ctx, platforms);
     _drawProjectiles(ctx, projectiles, globalTimer);
+    _drawRangedProjectiles(ctx, rangedProjectiles);
     _drawEntities(ctx, entities, player, globalTimer);
     _drawExplosions(ctx, activeExplosions);
     if (player.overchargeState === 'active') {
@@ -101,8 +121,10 @@ export function draw({
     }
     _drawPlayer(ctx, player, isGameOver, isDeathSequence, deathSequenceEndTime, globalTimer);
     _drawComboMultiplier(ctx, player, isFirstStart, isGameOver);
+    drawParallaxForeground(ctx, canvas, parallaxScroll);
 
     if (zoomed) ctx.restore();
+    ctx.restore();
 
     if (!isFirstStart && !isGameOver) {
         drawFuelBar(ctx, player, globalTimer, gameSpeed);
@@ -223,6 +245,18 @@ function _drawProjectiles(ctx, projectiles, globalTimer) {
     });
 }
 
+function _drawRangedProjectiles(ctx, rangedProjectiles) {
+    rangedProjectiles.forEach(proj => {
+        if (rangedAttackAssetsLoaded === numRangedAttackFrames) {
+            const frame = proj.currentFrame % numRangedAttackFrames;
+            ctx.drawImage(rangedAttackFrames[frame], proj.x, proj.y, proj.width, proj.height);
+        } else {
+            ctx.fillStyle = '#00bfff';
+            ctx.fillRect(proj.x, proj.y, proj.width, proj.height);
+        }
+    });
+}
+
 // --- INIMIGOS ---
 function _drawEntities(ctx, entities, player, globalTimer) {
     entities.forEach(ent => {
@@ -301,7 +335,7 @@ function _drawPlayer(ctx, player, isGameOver, isDeathSequence, deathSequenceEndT
         if (img.complete && img.naturalWidth > 0) {
             // Proporção real do sprite: 500x272
             const OVERCHARGE_ASPECT = 500 / 272;
-            const drawH = player.height * 1.6;
+            const drawH = player.height * 1.5; //alterado de 1.6
             const drawW = drawH * OVERCHARGE_ASPECT;
             const drawX = player.x + player.width  / 2 - drawW / 2;
             const drawY = player.y + player.height / 2 - drawH / 2;
@@ -406,24 +440,30 @@ export function drawFuelBar(ctx, player, globalTimer = 0, gameSpeed = 5) {
         ctx.stroke();
     }
 
-    ctx.font = 'bold 11px Courier New';
-    ctx.textAlign = 'left';
+    ctx.font = 'bold 8px Courier New';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    // PENDENTE VERIFICAR: conferir legibilidade do status dentro da barra de fuel.
     if (isOvercharge) {
         const pulse = 0.7 + 0.3 * Math.sin(globalTimer * 0.18);
         ctx.fillStyle = `rgba(0, 191, 255, ${pulse})`;
-        ctx.fillText('Status: OVERCHARGED', hudX, hudY + barHeight + 15);
+        ctx.fillText('OVERCHARGED', hudX + barWidth / 2, hudY + barHeight / 2);
     } else if (player.isFuelLocked) {
-        ctx.fillStyle = '#ff3344';
-        ctx.fillText('Status: Superaquecido', hudX, hudY + barHeight + 15);
+        ctx.fillStyle = '#ffffff';
+        ctx.fillText('SUPERAQUECIDO', hudX + barWidth / 2, hudY + barHeight / 2);
     } else {
-        ctx.fillStyle = '#626a8a';
-        ctx.fillText('Status: Normal', hudX, hudY + barHeight + 15);
+        ctx.fillStyle = '#0d0e15';
+        ctx.fillText('NORMAL', hudX + barWidth / 2, hudY + barHeight / 2);
     }
+    ctx.textBaseline = 'alphabetic';
+
+    _drawRangedChargeBar(ctx, player, hudX, hudY + barHeight + 8);
 
     // --- DEBUG INFO ---
-    let debugY = hudY + barHeight + 35;
+    let debugY = hudY + barHeight + 48;
     ctx.fillStyle = '#00ffcc';
     ctx.font = '11px Courier New';
+    ctx.textAlign = 'left';
 
     ctx.fillText(`Game Speed: ${gameSpeed.toFixed(2)}`, hudX, debugY); debugY += 14;
 
@@ -445,6 +485,36 @@ export function drawFuelBar(ctx, player, globalTimer = 0, gameSpeed = 5) {
 
     const ocDuration = Math.max(0, player.overchargeTimer);
     ctx.fillText(`OC Timer:   ${ocDuration.toFixed(2)}s`, hudX, debugY); debugY += 14;
+}
+
+function _drawRangedChargeBar(ctx, player, x, y) {
+    const barWidth = 60;
+    const barHeight = 5;
+    const hasCharge = player.rangedCharges > 0;
+    const partialPct = Math.min(1, player.rangedChargeProgress / 2);
+
+    ctx.save();
+    ctx.strokeStyle = '#00bfff';
+    ctx.lineWidth = 1;
+    ctx.strokeRect(x, y, barWidth, barHeight);
+
+    if (hasCharge) {
+        ctx.fillStyle = '#00bfff';
+        ctx.fillRect(x, y, barWidth, barHeight);
+        if (partialPct > 0) {
+            ctx.fillStyle = '#006a8f';
+            ctx.fillRect(x, y, barWidth * partialPct, barHeight);
+        }
+    } else if (partialPct > 0) {
+        ctx.fillStyle = '#00bfff';
+        ctx.fillRect(x, y, barWidth * partialPct, barHeight);
+    }
+
+    ctx.font = 'bold 10px Courier New';
+    ctx.textAlign = 'left';
+    ctx.fillStyle = '#00bfff';
+    ctx.fillText(`x ${player.rangedCharges}`, x + barWidth + 8, y + barHeight + 2);
+    ctx.restore();
 }
 
 // --- OVERCHARGE BAR ---

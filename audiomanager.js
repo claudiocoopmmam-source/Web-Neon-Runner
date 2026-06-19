@@ -3,28 +3,22 @@
 // BGM (menu, jogo, game over) + SFX.
 // Exporta funções de alto nível; nenhum outro módulo mexe em objetos Audio diretamente.
 
+import { createTrackedAudio } from './assetmanager.js';
+
 // --- BGM ---
-export const menuBGM = new Audio('assets/BGM/Cosmic_Shadows_Menu_BGM.opus');
-menuBGM.loop = true;
-menuBGM.volume = 0.50;
+export const menuBGM = createTrackedAudio('assets/BGM/Cosmic_Shadows_Menu_BGM.opus', { loop: true, volume: 0.50 });
 
 // Apenas uma faixa para o gameplay (Runic Circuit removido)
 const GAME_TRACK             = 'assets/BGM/Neon_Invasion_BGM.opus';
 const GAME_TRACK_OVERCHARGED = 'assets/BGM/Neon_Invasion_overcharged_BGM.opus';
 
-export const gameBGM = new Audio(GAME_TRACK);
-gameBGM.loop = true;
-gameBGM.volume = 0.50;
+export const gameBGM = createTrackedAudio(GAME_TRACK, { loop: true, volume: 0.50 });
 
 // Versão "agressiva" da mesma faixa — toca em paralelo, silenciada,
 // e é trazida ao primeiro plano durante o overcharge.
-export const gameBGMOvercharged = new Audio(GAME_TRACK_OVERCHARGED);
-gameBGMOvercharged.loop = true;
-gameBGMOvercharged.volume = 0;
+export const gameBGMOvercharged = createTrackedAudio(GAME_TRACK_OVERCHARGED, { loop: true, volume: 0 });
 
-export const gameOverBGM = new Audio('assets/BGM/Last Signal_BGM.opus');
-gameOverBGM.loop = true;
-gameOverBGM.volume = 0.50;
+export const gameOverBGM = createTrackedAudio('assets/BGM/Last Signal_BGM.opus', { loop: true, volume: 0.50 });
 
 export let currentSFXVolume = 0.50;
 let currentBGMVolume = 0.50;
@@ -132,9 +126,7 @@ export function playAttackSFX() {
     strikeSFX.play().catch(() => {});
 }
 
-export const rocketBootsSFX = new Audio('assets/sfx/player_rocketboots_sfx.opus');
-rocketBootsSFX.loop = false;
-rocketBootsSFX.volume = 0.50;
+export const rocketBootsSFX = createTrackedAudio('assets/sfx/player_rocketboots_sfx.opus', { loop: false, volume: 0.50 });
 
 export function startRocketBootsSFX() {
     if (currentSFXVolume <= 0) return;

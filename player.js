@@ -2,50 +2,45 @@
 // Responsabilidade: estado do player, sprites, takeDamage, ataque, combo.
 // Não sabe nada de plataformas, inimigos ou rendering.
 
+import { createTrackedImage } from './assetmanager.js';
+
 // --- SPRITES DO PLAYER ---
 export const runFrames = [];
 export const numRunFrames = 4;
 export let runAssetsLoaded = 0;
 for (let i = 1; i <= numRunFrames; i++) {
-    const img = new Image();
-    img.src = `assets/player_run_${i}.webp`;
-    img.onload = () => { runAssetsLoaded++; };
-    runFrames.push(img);
+    runFrames.push(createTrackedImage(`assets/player_run_${i}.webp`, () => { runAssetsLoaded++; }));
 }
 
 export const attackFrames = [];
 export const numAttackFrames = 3;
 export let attackAssetsLoaded = 0;
 for (let i = 1; i <= numAttackFrames; i++) {
-    const img = new Image();
-    img.src = `assets/player_attack_${i}.webp`;
-    img.onload = () => { attackAssetsLoaded++; };
-    attackFrames.push(img);
+    attackFrames.push(createTrackedImage(`assets/player_attack_${i}.webp`, () => { attackAssetsLoaded++; }));
 }
 
-export const jumpSprite = new Image();
-jumpSprite.src = 'assets/player_jump.webp';
+export const rangedAttackFrames = [];
+export const numRangedAttackFrames = 6;
+export let rangedAttackAssetsLoaded = 0;
+for (let i = 1; i <= numRangedAttackFrames; i++) {
+    rangedAttackFrames.push(createTrackedImage(`assets/player_rangedAttack${i}.webp`, () => { rangedAttackAssetsLoaded++; }));
+}
+
+export const jumpSprite = createTrackedImage('assets/player_jump.webp', () => { jumpAssetLoaded = true; });
 export let jumpAssetLoaded = false;
-jumpSprite.onload = () => { jumpAssetLoaded = true; };
 
 export const flyFrames = [];
 export const numFlyFrames = 3;
 export let flyAssetsLoaded = 0;
 for (let i = 1; i <= numFlyFrames; i++) {
-    const img = new Image();
-    img.src = `assets/player_fly_${i}.webp`;
-    img.onload = () => { flyAssetsLoaded++; };
-    flyFrames.push(img);
+    flyFrames.push(createTrackedImage(`assets/player_fly_${i}.webp`, () => { flyAssetsLoaded++; }));
 }
 
 export const deathFrames = [];
-export const numDeathFrames = 5;
+export const numDeathFrames = 6;
 export let deathAssetsLoaded = 0;
 for (let i = 1; i <= numDeathFrames; i++) {
-    const img = new Image();
-    img.src = `assets/player_death${i}.webp`;
-    img.onload = () => { deathAssetsLoaded++; };
-    deathFrames.push(img);
+    deathFrames.push(createTrackedImage(`assets/player_death${i}.webp`, () => { deathAssetsLoaded++; }));
 }
 
 // --- SPRITES OVERCHARGE ---
@@ -53,10 +48,7 @@ export const overchargeFrames = [];
 export const numOverchargeFrames = 4;
 export let overchargeAssetsLoaded = 0;
 for (let i = 1; i <= numOverchargeFrames; i++) {
-    const img = new Image();
-    img.src = `assets/player_overcharge_flight${i}.webp`;
-    img.onload = () => { overchargeAssetsLoaded++; };
-    overchargeFrames.push(img);
+    overchargeFrames.push(createTrackedImage(`assets/player_overcharge_flight${i}.webp`, () => { overchargeAssetsLoaded++; }));
 }
 
 // --- ESTADO GLOBAL DO PLAYER ---
@@ -92,6 +84,8 @@ export const player = {
     maxCoyoteFrames: 6,
     comboKills: 0,
     comboMultiplier: 1.0,
+    rangedCharges: 0,
+    rangedChargeProgress: 0,
     // --- DEBUG METADATA ---
     currentFuelRegen: 0.15,
     currentFuelDrain: 1.0,
@@ -125,6 +119,8 @@ export function resetPlayer() {
     player.coyoteTimer = 0;
     player.comboKills = 0;
     player.comboMultiplier = 1.0;
+    player.rangedCharges = 0;
+    player.rangedChargeProgress = 0;
     player.overchargeBar = 0;
     player.overchargeState = 'idle';
     player.overchargeTimer = 0;
@@ -205,8 +201,13 @@ export function takeDamage(player, amount) {
 /**
  * Tenta disparar um ataque. Retorna true se o ataque foi iniciado.
  */
-export function tryAttack(player) {
+export function tryAttack(player, mode = 'melee') {
     if (!player.isAttacking && player.attackCooldownTimer <= 0) {
+        if (mode === 'ranged') {
+            player.attackCooldownTimer = player.currentAttackCooldownMax;
+            return true;
+        }
+
         player.isAttacking = true;
         player.attackTimer = player.attackDuration;
         player.currentAttackFrame = 0;
@@ -215,6 +216,24 @@ export function tryAttack(player) {
         return true;
     }
     return false;
+}
+
+export function addRangedChargeProgress(player, amount = 1) {
+    player.rangedChargeProgress += amount;
+    while (player.rangedChargeProgress >= 2) {
+        player.rangedCharges++;
+        player.rangedChargeProgress -= 2;
+    }
+}
+
+export function addRangedCharges(player, amount = 1) {
+    player.rangedCharges += amount;
+}
+
+export function spendRangedCharge(player) {
+    if (player.rangedCharges <= 0) return false;
+    player.rangedCharges--;
+    return true;
 }
 
 /**

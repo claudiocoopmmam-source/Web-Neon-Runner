@@ -3,55 +3,41 @@
 // Sem comportamento, sem colisão, sem lógica de update.
 // Só cria e devolve objetos prontos para o enemy.js e physics.js usarem.
 
+import { createTrackedImage } from './assetmanager.js';
+import { WORLD_BOTTOM_Y } from './world.js';
+
 // --- SPRITES DE INIMIGOS ---
 export const runnerFrames = [];
 export const numRunnerFrames = 2;
 export let runnerAssetsLoaded = 0;
 for (let i = 1; i <= numRunnerFrames; i++) {
-    const img = new Image();
-    img.src = `assets/enemy_runner_walk_${i}.webp`;
-    img.onload = () => { runnerAssetsLoaded++; };
-    runnerFrames.push(img);
+    runnerFrames.push(createTrackedImage(`assets/enemy_runner_walk_${i}.webp`, () => { runnerAssetsLoaded++; }));
 }
 
-export const shooterLoadedSprite = new Image();
-shooterLoadedSprite.src = 'assets/enemy_shooter_loaded.webp';
+export const shooterLoadedSprite = createTrackedImage('assets/enemy_shooter_loaded.webp', () => { shooterLoadedAssetLoaded = true; });
 export let shooterLoadedAssetLoaded = false;
-shooterLoadedSprite.onload = () => { shooterLoadedAssetLoaded = true; };
 
-export const shooterUnloadedSprite = new Image();
-shooterUnloadedSprite.src = 'assets/enemy_shooter_unloaded.webp';
+export const shooterUnloadedSprite = createTrackedImage('assets/enemy_shooter_unloaded.webp', () => { shooterUnloadedAssetLoaded = true; });
 export let shooterUnloadedAssetLoaded = false;
-shooterUnloadedSprite.onload = () => { shooterUnloadedAssetLoaded = true; };
 
 export const missileFrames = [];
 export const numMissileFrames = 3;
 export let missileAssetsLoaded = 0;
 for (let i = 1; i <= numMissileFrames; i++) {
-    const img = new Image();
-    img.src = `assets/missile_${i}.webp`;
-    img.onload = () => { missileAssetsLoaded++; };
-    missileFrames.push(img);
+    missileFrames.push(createTrackedImage(`assets/missile_${i}.webp`, () => { missileAssetsLoaded++; }));
 }
 
-export const carrierFuelSprite = new Image();
-carrierFuelSprite.src = 'assets/enemy_carrier_fuel.webp';
+export const carrierFuelSprite = createTrackedImage('assets/enemy_carrier_fuel.webp', () => { carrierFuelAssetLoaded = true; });
 export let carrierFuelAssetLoaded = false;
-carrierFuelSprite.onload = () => { carrierFuelAssetLoaded = true; };
 
-export const carrierHealthSprite = new Image();
-carrierHealthSprite.src = 'assets/enemy_carrier_health.webp';
+export const carrierHealthSprite = createTrackedImage('assets/enemy_carrier_health.webp', () => { carrierHealthAssetLoaded = true; });
 export let carrierHealthAssetLoaded = false;
-carrierHealthSprite.onload = () => { carrierHealthAssetLoaded = true; };
 
 export const flyerFrames = [];
 export const numFlyerFrames = 2;
 export let flyerAssetsLoaded = 0;
 for (let i = 1; i <= numFlyerFrames; i++) {
-    const img = new Image();
-    img.src = `assets/enemy_flyer_walk${i}.webp`;
-    img.onload = () => { flyerAssetsLoaded++; };
-    flyerFrames.push(img);
+    flyerFrames.push(createTrackedImage(`assets/enemy_flyer_walk${i}.webp`, () => { flyerAssetsLoaded++; }));
 }
 
 export const numExplosionFrames = 5;
@@ -66,8 +52,7 @@ const _explosionVariantDefs = [
 export const explosionVariants = _explosionVariantDefs.map(({ srcFn, count }) => {
     const frames = [];
     for (let i = 1; i <= count; i++) {
-        const img = new Image();
-        img.src = srcFn(i);
+        const img = createTrackedImage(srcFn(i));
         frames.push(img);
     }
     return frames;
@@ -109,7 +94,7 @@ export function createNewPlatform(lastPlat, gameSpeed) {
     const nextX = lastPlat.x + lastPlat.width + gap;
     const nextY = Math.floor(Math.random() * (500 - 180) + 180);
 
-    return { x: nextX, y: nextY, width, height: 576 - nextY };
+    return { x: nextX, y: nextY, width, height: WORLD_BOTTOM_Y - nextY };
 }
 
 // --- FÁBRICAS DE INIMIGOS ---

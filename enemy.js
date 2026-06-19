@@ -4,9 +4,34 @@
 // (dano ao player, kills, pickups) para o gamemanager processar.
 
 import { checkCollision, spawnCarrierDrone, getRandomExplosionVariant } from './entities.js';
+import { createObjectPool } from './objectpool.js';
 
 // Threshold de disparo do shooter (73.2% da largura do canvas)
 const SHOOTER_FIRE_THRESHOLD_RATIO = 0.732;
+const EXPLOSION_ASPECT = 498 / 455;
+
+const explosionPool = createObjectPool(
+    () => ({
+        x: 0,
+        y: 0,
+        width: 0,
+        height: 0,
+        currentFrame: 0,
+        frameTimer: 0,
+        animationSpeed: 6,
+        variant: null,
+    }),
+    (exp) => {
+        exp.x = 0;
+        exp.y = 0;
+        exp.width = 0;
+        exp.height = 0;
+        exp.currentFrame = 0;
+        exp.frameTimer = 0;
+        exp.animationSpeed = 6;
+        exp.variant = null;
+    }
+);
 
 /**
  * Atualiza todos os inimigos. Retorna um objeto de eventos:
@@ -35,6 +60,8 @@ export function updateEnemies({
     const events = {
         damageEvents: 0,
         kills: 0,
+        meleeKills: 0,
+        overchargeKills: 0,
         scoreGain: 0,
         newProjectiles: [],
         newExplosions: [],
@@ -113,11 +140,12 @@ export function updateEnemies({
                 } else if (ent.type === 'wall') {
                     events.wallHits = (events.wallHits || 0) + 1;
                 } else {
-                    events.newExplosions.push(_makeExplosion(ent));
+                    events.newExplosions.push(createExplosion(ent));
                     if (Math.random() <= 0.10) {
                         events.newCarriers.push(spawnCarrierDrone(player.y));
                     }
                     events.kills++;
+                    events.meleeKills++;
                     events.scoreGain += 50;
                 }
                 toRemove.add(index);
@@ -130,8 +158,9 @@ export function updateEnemies({
                     _processCarrierPickup(ent, events, lives);
                     toRemove.add(index);
                 } else if (ent.type !== 'wall') {
-                    events.newExplosions.push(_makeExplosion(ent));
+                    events.newExplosions.push(createExplosion(ent));
                     events.kills++;
+                    events.overchargeKills++;
                     events.scoreGain += 50;
                     toRemove.add(index);
                 } else {
@@ -149,7 +178,7 @@ export function updateEnemies({
                     toRemove.add(index);
                 } else if (player.invulnerableTimer <= 0) {
                     if (ent.type !== 'wall') {
-                        events.newExplosions.push(_makeExplosion(ent));
+                        events.newExplosions.push(createExplosion(ent));
                     }
                     events.damageEvents++;
                     toRemove.add(index);
@@ -254,7 +283,7 @@ export function updateProjectiles({
             // Projétil refletido acerta inimigo
             entities.forEach((ent, eIdx) => {
                 if (checkCollision(proj, ent) && ent.type !== 'wall') {
-                    events.newExplosions.push(_makeExplosion(ent));
+                    events.newExplosions.push(createExplosion(ent));
                     entities.splice(eIdx, 1);
                     toRemove.add(index);
                     events.kills++;
@@ -292,6 +321,7 @@ export function updateExplosions(activeExplosions, gameSpeed, dt) {
             exp.frameTimer = 0;
             const totalFrames = exp.variant ? exp.variant.length : 5;
             if (exp.currentFrame >= totalFrames) {
+                explosionPool.release(exp);
                 activeExplosions.splice(i, 1);
             }
         }
@@ -299,21 +329,19 @@ export function updateExplosions(activeExplosions, gameSpeed, dt) {
 }
 
 // --- HELPERS PRIVADOS ---
-function _makeExplosion(ent) {
-    // Dimensões calculadas pela proporção real do sprite (498x455)
-    const EXPLOSION_ASPECT = 498 / 455;
+export function createExplosion(ent) {
     const expHeight = Math.max(ent.width, ent.height) * 1.2;
     const expWidth  = expHeight * EXPLOSION_ASPECT;
-    return {
-        x: ent.x + ent.width  / 2 - expWidth  / 2,
-        y: ent.y + ent.height / 2 - expHeight / 2,
-        width:  expWidth,
-        height: expHeight,
-        currentFrame: 0,
-        frameTimer: 0,
-        animationSpeed: 6,
-        variant: getRandomExplosionVariant(),
-    };
+    const exp = explosionPool.acquire();
+    exp.x = ent.x + ent.width  / 2 - expWidth  / 2;
+    exp.y = ent.y + ent.height / 2 - expHeight / 2;
+    exp.width = expWidth;
+    exp.height = expHeight;
+    exp.currentFrame = 0;
+    exp.frameTimer = 0;
+    exp.animationSpeed = 6;
+    exp.variant = getRandomExplosionVariant();
+    return exp;
 }
 
 function _processCarrierPickup(ent, events, currentLives) {

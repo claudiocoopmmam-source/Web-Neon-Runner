@@ -8,6 +8,9 @@ import {
     updateBGMVolume, updateSFXVolume,
     menuBGM,
 } from './audiomanager.js';
+import { createTrackedImage } from './assetmanager.js';
+
+const mainMenuBg       = createTrackedImage('assets/main_menu_bg.webp');
 
 // --- ELEMENTOS DO DOM ---
 const mainMenu         = document.getElementById('main-menu');
@@ -35,9 +38,13 @@ const sliderBGM        = document.getElementById('slider-bgm');
 const sliderSFX        = document.getElementById('slider-sfx');
 const iconBGM          = document.getElementById('icon-bgm');
 const iconSFX          = document.getElementById('icon-sfx');
+const soundOnIcon      = createTrackedImage('assets/ui/sound_on.webp');
+const soundOffIcon     = createTrackedImage('assets/ui/sound_off.webp');
 
 const livesDisplay     = document.getElementById('lives');
 const scoreDisplay     = document.getElementById('score');
+
+document.documentElement.style.setProperty('--main-menu-bg', `url("${mainMenuBg.src}")`);
 
 // --- TIPS ---
 const tips = [
@@ -199,6 +206,19 @@ export function initUI(callbacks) {
 
     let openedFromPause = false;
 
+    const preventPageScroll = (e) => {
+        if (!['Space', 'ArrowUp', 'ArrowDown', 'PageUp', 'PageDown', 'Home', 'End'].includes(e.code)) return;
+
+        const activeTag = document.activeElement?.tagName;
+        const activeType = document.activeElement?.type;
+        const isRangeInput = activeTag === 'INPUT' && activeType === 'range';
+        if (isRangeInput) return;
+
+        e.preventDefault();
+    };
+
+    window.addEventListener('keydown', preventPageScroll, { capture: true });
+
     // Desbloqueio de áudio
     const unlockAudio = (e) => {
         if (!e.target.closest('#btn-run') && !e.target.closest('#btn-options')) {
@@ -213,13 +233,13 @@ export function initUI(callbacks) {
     sliderBGM.addEventListener('input', (e) => {
         const val = parseFloat(e.target.value);
         updateBGMVolume(val);
-        iconBGM.src = val === 0 ? 'assets/ui/sound_off.webp' : 'assets/ui/sound_on.webp';
+        iconBGM.src = val === 0 ? soundOffIcon.src : soundOnIcon.src;
     });
 
     sliderSFX.addEventListener('input', (e) => {
         const val = parseFloat(e.target.value);
         updateSFXVolume(val);
-        iconSFX.src = val === 0 ? 'assets/ui/sound_off.webp' : 'assets/ui/sound_on.webp';
+        iconSFX.src = val === 0 ? soundOffIcon.src : soundOnIcon.src;
     });
 
     // Botões de opções

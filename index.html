@@ -8,6 +8,19 @@
 </head>
 <body>
 
+    <div id="loading-screen">
+        <div id="loading-panel">
+            <div class="loading-kicker">PREPARANDO SISTEMA</div>
+            <h1>NEON RUNNER</h1>
+            <div class="loading-bar-shell">
+                <div id="loading-bar-fill"></div>
+            </div>
+            <div id="loading-status">Carregando assets...</div>
+        </div>
+    </div>
+
+    <div id="layout-spacer" aria-hidden="true"></div>
+
     <div id="game-wrapper">
         <div id="audio-unlocker">
             <div class="unlock-text">CLIQUE EM QUALQUER LUGAR PARA INICIAR</div>
@@ -79,15 +92,19 @@
                 </div>
             </div>
 
-            <div id=\"controls-tip\">
+            <div id="controls-tip">
                 [W / Espaço / ↑] Pula (Aperte 3x e segure para VOAR)<br>
                 [D / X / → / Clique] Ataque Melee | [P] Pausa
             </div>
         </div>
-    </div> <div id="changelog-container">
+    </div>
+    <div id="changelog-container" class="removal-candidate" data-removal-candidate="true">
         <div class="changelog-header">
             <h2>🚀 Neon Runner v0.6.5.1 - Stable</h2>
-            <span class="badge-stable">STABLE RELEASE</span>
+            <div class="changelog-badges">
+                <span class="badge-stable">STABLE RELEASE</span>
+                <span class="badge-removal">PENDENTE DE REMOÇÃO</span>
+            </div>
         </div>
         
         <div class="changelog-intro">
